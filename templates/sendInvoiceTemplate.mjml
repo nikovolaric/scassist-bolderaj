@@ -1,0 +1,107 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" font-size="20px" font-weight="bold"
+          >Račun</mj-text
+        >
+        <mj-text>Št. računa: {{invoiceNumber}}</mj-text>
+        <mj-text>Datum računa: {{invoiceDate}}</mj-text>
+        <mj-text>Kraj izdaje: Celje</mj-text>
+        <mj-text>Sklic: {{reference}}</mj-text>
+        <mj-text>Blagajnik: {{cashier}}</mj-text>
+        <mj-text>Blagajna: Default</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" font-size="18px" font-weight="bold"
+          >Podatki o plačilu</mj-text
+        >
+        <mj-text>Bolderaj, športne dejavnosti in storitve, d.o.o.</mj-text>
+        <mj-text>Ob progi 3, Rogaška Slatina</mj-text>
+        <mj-text>Davčna številka: SI99163314</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" font-size="18px" font-weight="bold"
+          >Stranka</mj-text
+        >
+        <mj-text>{{name}}</mj-text>
+        <mj-text>Datum zapadlosti: {{dueDate}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" font-size="18px" font-weight="bold"
+          >Naziv</mj-text
+        >
+        <mj-table>
+          <tr>
+            <th align="left">{{item}}</th>
+            <th align="left">{{itemQ}}</th>
+            <th align="left">{{itemDDV}}%</th>
+            <th align="left">{{itemPriceDDV}}€</th>
+          </tr>
+          <tr>
+            <td colspan="3" align="left"><strong>Skupaj (z DDV)</strong></td>
+            <td align="left"><strong>{{totalAmount}}€</strong></td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left">Davčna stopnja</td>
+            <td align="left">{{itemDDV}}%</td>
+          </tr>
+          <tr>
+            <td align="left">Osnova</td>
+            <td align="left">{{totalAmount}€}</td>
+          </tr>
+          <tr>
+            <td align="left">Znesek DDV</td>
+            <td align="left">{{totalTaxAmount}}€</td>
+          </tr>
+          <tr>
+            <td align="left"><strong>Skupaj davek</strong></td>
+            <td align="left"><strong>{{totalTaxAmount}}€</strong></td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left"><strong>Cena (z DDV)</strong></td>
+            <td align="left"><strong>10,00 €</strong></td>
+          </tr>
+        </mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text>Oblika plačila: V gotovini</mj-text>
+        <mj-text>ZOI: e580bdcacd528ccf6d75aa84dc714cac</mj-text>
+        <mj-text>EOR: b43369c3-661d-416c-a5d6-ae19601f337e</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-image
+          src="QR_code_link_here"
+          alt="QR Code"
+          width="150px"
+        ></mj-image>
+        <mj-button href="document_download_link_here" background-color="#0078D4"
+          >Prenesi dokument</mj-button
+        >
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" font-size="16px" font-weight="bold"
+          >Hvala za obisk, se vidimo na naslednjem treningu!</mj-text
+        >
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
