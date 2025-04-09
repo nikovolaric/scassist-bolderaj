@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createTicketsForCompany,
   getAllTickets,
+  getChildValidTickets,
   getMyUsedTickets,
   getMyValidTickets,
   getOneTicket,
@@ -16,6 +17,7 @@ router.use(protect);
 
 router.get("/mytickets", getMyValidTickets);
 router.get("/mytickets/used", getMyUsedTickets);
+router.get("/childTickets/:id", getChildValidTickets);
 
 router.use(restrictTo(["admin", "employee"]));
 

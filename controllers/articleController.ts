@@ -22,9 +22,6 @@ import {
   connectWithFURS,
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
-import { jwtDecode } from "jwt-decode";
-import jwt from "jsonwebtoken";
-import { readFileSync } from "fs";
 import Visit from "../models/visitModel";
 
 export const createArticle = createOne(Article);
@@ -44,42 +41,64 @@ export const getAllArticles = catchAsync(async function (
     .limitFields()
     .paginate();
 
-  const doc = await features.query;
+  const articles = await features.query;
 
-  const articles = await Promise.all(
-    doc.map(async (el: any) => {
-      if (el.class) {
-        const currentClass = await Class.findById(el.class);
+  // const articles = await Promise.all(
+  //   doc.map(async (el: any) => {
+  //     if (el.class.length>0) {
+  //       const currentClass = await Class.findById(el.class);
 
-        if (!currentClass) return next(new AppError("Class not found", 404));
+  //       if (!currentClass) return next(new AppError("Class not found", 404));
 
-        const article = await Article.findById(el._id);
+  //       const article = await Article.findById(el._id);
 
-        if (!article) return next(new AppError("Article not found", 404));
+  //       if (!article) return next(new AppError("Article not found", 404));
 
-        const newDates = currentClass.dates.filter(
-          (date: Date) => date > new Date()
-        );
+  //       const newDates = currentClass.dates.filter(
+  //         (date: Date) => date > new Date()
+  //       );
 
-        if (newDates.length !== currentClass.dates.length) {
-          currentClass.dates = newDates;
+  //       if (newDates.length !== currentClass.dates.length) {
+  //         currentClass.dates = newDates;
 
-          article.price =
-            (article.price / currentClass.totalClasses) *
-            currentClass.dates.length;
+  //         article.price =
+  //           (article.price / currentClass.totalClasses) *
+  //           currentClass.dates.length;
 
-          await currentClass.save({ validateBeforeSave: false });
-          await article.save({ validateBeforeSave: false });
+  //         await currentClass.save({ validateBeforeSave: false });
+  //         await article.save({ validateBeforeSave: false });
 
-          el.price = article.price;
-          el.priceDDV = article.priceDDV;
-          return el;
-        }
-      }
+  //         el.price = article.price;
+  //         el.priceDDV = article.priceDDV;
+  //         return el;
+  //       }
+  //     }
 
-      return el;
-    })
-  );
+  //     return el;
+  //   })
+  // );
+
+  res.status(200).json({
+    status: "success",
+    results: articles.length,
+    articles,
+  });
+});
+
+export const getAllVisibleArticles = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let filter = { hidden: { $ne: true } };
+
+  const features = new APIFeatures(Article.find(filter), req.query)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const articles = await features.query;
 
   res.status(200).json({
     status: "success",
@@ -93,32 +112,9 @@ export const getOneArticle = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const article = await Article.findById(req.params.id).populate({
-    path: "class",
-    select: "dates time full",
-  });
+  const article = await Article.findById(req.params.id);
 
   if (!article) return next(new AppError("Article not found", 404));
-
-  if (article.class) {
-    const currentClass = await Class.findById(article.class);
-
-    if (!currentClass) return next(new AppError("Class not found", 404));
-
-    const newDates = currentClass.dates.filter(
-      (date: Date) => date > new Date()
-    );
-
-    if (newDates.length !== currentClass.dates.length) {
-      currentClass.dates = newDates;
-
-      article.price =
-        (article.price / currentClass.totalClasses) * currentClass.dates.length;
-
-      await currentClass.save({ validateBeforeSave: false });
-      await article.save({ validateBeforeSave: false });
-    }
-  }
 
   res.status(200).json({
     status: "success",
@@ -161,7 +157,7 @@ export const buyArticlesOnline = catchAsync(async function (
       return next(new AppError("You can only buy tickets on this route", 400));
   });
 
-  cart.forEach(async (el) => {
+  for (const el of cart) {
     if (el.article.label === "V") {
       let tickets: ObjectId[] = [];
       if (!el.gift) {
@@ -172,6 +168,7 @@ export const buyArticlesOnline = catchAsync(async function (
               type: el.article.type,
               duration: el.article.duration,
               visits: el.article.visits,
+              morning: el.article.morning,
               user: req.user.id,
             };
             const ticket = await Ticket.create(data);
@@ -202,7 +199,7 @@ export const buyArticlesOnline = catchAsync(async function (
         await sendCode({ firstName: user.firstName, code: ticket.giftCode });
       }
     }
-  });
+  }
 
   const taxes = cart.map((el) => {
     const tax = {
@@ -306,7 +303,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
       return next(new AppError("You can only buy tickets on this route", 400));
   });
 
-  cart.forEach(async (el) => {
+  for (const el of cart) {
     if (el.article.label === "V") {
       let tickets: ObjectId[] = [];
 
@@ -330,7 +327,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
       user.unusedTickets = [...user.unusedTickets, ...tickets];
       await user.save({ validateBeforeSave: false });
     }
-  });
+  }
 
   const taxes = cart.map((el) => {
     const tax = {

@@ -5,8 +5,11 @@ import {
   createClass,
   deleteClass,
   getAllClasses,
+  getChildClasses,
+  getMultipleDateClasses,
   getMyClasses,
   getOneClass,
+  getSingleDateClasses,
   signUpChildForClassOnline,
   signUpForClassOnline,
   updateClass,
@@ -17,9 +20,12 @@ const router = Router();
 router.use(protect);
 
 router.get("/myclasses", getMyClasses);
+router.get("/multipledates", getMultipleDateClasses);
+router.get("/singledates", getSingleDateClasses);
 
-router.post("/signuponline/:id", signUpForClassOnline);
+router.post("/signuponline", signUpForClassOnline);
 router.post("/child/signuponline/:id", signUpChildForClassOnline);
+router.get("/child/getclasses/:id", getChildClasses);
 
 router.get("/:id", getOneClass);
 

@@ -27,14 +27,13 @@ export const useTicket = catchAsync(async function (
 
   if (!ticket) return next(new AppError("Ticket not found", 404));
   if (
-    (ticket.used &&
-      (ticket.type === "dnevna" || ticket.type === "dopoldanska")) ||
+    (ticket.used && ticket.type === "dnevna") ||
     ticket.validUntil < new Date()
   )
     return next(new AppError("Ticket is not valid", 400));
 
-  if (ticket.type === "dopoldanska" && new Date().getHours() >= 12)
-    return next(new AppError("This ticket can be used until 12.00", 403));
+  if (ticket.morning && new Date().getHours() >= 14)
+    return next(new AppError("This ticket can be used until 14.00", 403));
 
   const user = await User.findById(ticket.user);
 
@@ -48,7 +47,7 @@ export const useTicket = catchAsync(async function (
 
   const visit = await Visit.create(newVisitData);
 
-  if (ticket.type === "dnevna" || ticket.type === "dopoldanska") {
+  if (ticket.type === "dnevna") {
     ticket.used = true;
     ticket.usedOn = new Date();
     ticket.validUntil = new Date();
@@ -67,9 +66,6 @@ export const useTicket = catchAsync(async function (
     ticket.validUntil = new Date(
       Date.now() + ticket.duration * 24 * 60 * 60 * 1000
     );
-    ticket.canUseUntil = new Date(
-      Date.now() + ticket.duration * 24 * 60 * 60 * 1000
-    );
     ticket.used = true;
 
     if (ticket.validUntil < new Date()) {
@@ -81,15 +77,17 @@ export const useTicket = catchAsync(async function (
     }
   }
 
-  if (ticket.type === "paket" && !ticket.visits)
+  if (
+    ticket.type === "paket" &&
+    (!ticket.visitsLeft || ticket.validUntil < new Date())
+  )
     return next(new AppError("This ticket is used", 400));
 
   if (ticket.type === "paket") {
     ticket.validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    ticket.canUseUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    ticket.visits = ticket.visits - 1;
+    ticket.visitsLeft = ticket.visitsLeft - 1;
     ticket.used = true;
-    if (ticket.visits === 0) {
+    if (ticket.visitsLeft === 0) {
       user.unusedTickets = user.unusedTickets.filter((t) => {
         return t.toString() !== ticket.id.toString();
       });
@@ -149,9 +147,6 @@ export const useCuponTicket = catchAsync(async function (
     ticket.validUntil = new Date(
       Date.now() + ticket.duration * 24 * 60 * 60 * 1000
     );
-    ticket.canUseUntil = new Date(
-      Date.now() + ticket.duration * 24 * 60 * 60 * 1000
-    );
     ticket.used = true;
 
     if (ticket.validUntil < new Date()) {
@@ -163,15 +158,14 @@ export const useCuponTicket = catchAsync(async function (
     }
   }
 
-  if (ticket.type === "paket" && !ticket.visits)
+  if (ticket.type === "paket" && !ticket.visitsLeft)
     return next(new AppError("This ticket is used", 400));
 
   if (ticket.type === "paket") {
     ticket.validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    ticket.canUseUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    ticket.visits = ticket.visits - 1;
+    ticket.visitsLeft = ticket.visitsLeft - 1;
     ticket.used = true;
-    if (ticket.visits === 0) {
+    if (ticket.visitsLeft === 0) {
       user.unusedTickets = user.unusedTickets.filter((t) => {
         return t.toString() !== ticket.id.toString();
       });
@@ -198,14 +192,46 @@ export const getMyValidTickets = catchAsync(async function (
 ) {
   const user = await User.findById(req.user.id).populate({
     path: "unusedTickets",
-    select: "type validUntil canUseUntil",
+    select: "-__v -createdAt -user -used",
   });
 
   if (!user) return next(new AppError("User not found", 404));
 
   res.status(200).json({
     status: "success",
-    unusedTickets: user.unusedTickets,
+    results: user.unusedTickets.length,
+    unusedTickets: user.unusedTickets.sort(
+      (a: any, b: any) => b.updatedAt - a.updatedAt
+    ),
+  });
+});
+
+export const getChildValidTickets = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const childId = req.params.id;
+
+  if (
+    req.user.parentOf.filter((el) => el.child.toString() === childId).length ===
+    0
+  )
+    return next(new AppError("This is not your child", 403));
+
+  const child = await User.findById(childId).populate({
+    path: "unusedTickets",
+    select: "-__v -createdAt -user -used",
+  });
+
+  if (!child) return next(new AppError("User not found", 404));
+
+  res.status(200).json({
+    status: "success",
+    results: child.unusedTickets.length,
+    unusedTickets: child.unusedTickets.sort(
+      (a: any, b: any) => b.updatedAt - a.updatedAt
+    ),
   });
 });
 
@@ -223,6 +249,7 @@ export const getMyUsedTickets = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
+    results: user.usedTickets.length,
     usedTickets: user.usedTickets,
   });
 });

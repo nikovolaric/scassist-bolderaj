@@ -3,8 +3,9 @@ import { sign, verify } from "jsonwebtoken";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import User from "../models/userModel";
-import { sendReset } from "../utils/email";
+import { sendChildAuth, sendReset } from "../utils/email";
 import { createHash } from "crypto";
+import { Types } from "mongoose";
 
 const signToken = function (id: string) {
   const secret: any = process.env.JWT_SECRET;
@@ -25,6 +26,7 @@ const createSendToken = function (
         Number(process.env.JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
+    sameSite: true,
   };
 
   // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
@@ -60,20 +62,16 @@ export const signup = catchAsync(async function (
     age--;
   }
 
-  if (age < 18 && !req.body.childActivationCode)
+  if (age < 15)
     return next(
       new AppError(
-        "You must be at least 18 years old to register without a parent activation code!",
+        "You must be at least 15 years old to register without a parent!",
         403
       )
     );
 
-  const parent = await User.findOne({
-    "childActivationCode.code": req.body.childActivationCode,
-  });
-
-  if (!parent && age < 18)
-    return next(new AppError("Activation code not valid", 400));
+  if (age > 15 && (!req.body.email || !req.body.password))
+    return next(new AppError("Please provide email and password", 400));
 
   const newUser = await User.create({
     firstName: req.body.firstName,
@@ -89,32 +87,159 @@ export const signup = catchAsync(async function (
     city: req.body.city,
     postalCode: req.body.postalCode,
     country: req.body.country,
+    parentContact: req.body.parentContact,
     role: ["user"],
   });
 
-  if (parent?.childActivationCode && age < 18) {
-    parent.parentOf = [
-      ...parent.parentOf,
-      {
-        child: newUser.id,
-        agreesToTerms: true,
-        signedAt: parent.childActivationCode.signedAt,
-      },
-    ];
-    parent.childActivationCode = undefined;
+  createSendToken(newUser, 201, res);
+});
 
-    newUser.parentContact = {
-      phoneNumber: parent.phoneNumber,
-      email: parent.email,
-    };
+export const createChild = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.user.id).populate({
+    path: "parentOf.child",
+    select: "firstName",
+  });
 
-    await newUser.save({ validateBeforeSave: false });
-    await parent.save({ validateBeforeSave: false });
+  if (!user) return next(new AppError("User not found", 404));
+
+  if (
+    //@ts-ignore
+    user.parentOf.filter((el) => el.child.firstName === req.body.firstName)
+      .length > 0
+  )
+    return next(new AppError("Otrok že obstaja.", 404));
+
+  const today = new Date();
+  const birthDate = new Date(req.body.birthDate);
+
+  let age: number = today.getFullYear() - birthDate.getFullYear();
+
+  if (
+    today.getMonth() - birthDate.getMonth() < 0 ||
+    (today.getMonth() - birthDate.getMonth() === 0 &&
+      today.getDate() - birthDate.getDate() < 0)
+  ) {
+    age--;
   }
 
-  if (req.body.email) {
-    createSendToken(newUser, 201, res);
+  if (age >= 15)
+    return next(
+      new AppError("You must register alone, with signup function!", 403)
+    );
+
+  const child = await User.create({
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    birthDate: req.body.birthDate,
+    agreesToTerms: req.body.agreesToTerms,
+    address: req.body.address,
+    city: req.body.city,
+    postalCode: req.body.postalCode,
+    country: req.body.country,
+    parentContact: {
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+    },
+    role: ["user"],
+  });
+
+  user.parentOf = [
+    ...user.parentOf,
+    {
+      child: child._id as Types.ObjectId,
+      agreesToTerms: req.body.agreesToTerms as boolean,
+      signedAt: new Date(),
+    },
+  ];
+  await user.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: "success",
+    child,
+  });
+});
+
+export const sendChildAuthData = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const childId = req.params.id;
+
+  if (
+    req.user.parentOf.filter((el) => el.child.toString() === childId).length ===
+    0
+  )
+    return next(new AppError("This is not your child", 403));
+
+  const child = await User.findById(childId);
+  if (!child) {
+    return next(new AppError("User does not exist.", 404));
   }
+
+  const authToken = child?.createChildAuthToken();
+  await child.save({ validateBeforeSave: false });
+
+  try {
+    await sendChildAuth({
+      email: req.body.email,
+      token: authToken,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Token sent to email!",
+    });
+  } catch (err) {
+    child.childAuthToken = undefined;
+    child.childAuthTokenExpires = undefined;
+    await child.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError(
+        "There was an error sending the email! Please try again later",
+        500
+      )
+    );
+  }
+});
+
+export const setChildAuthData = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  //1. Get user based on the token
+  const hashedToken = createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const child = await User.findOne({
+    childAuthToken: hashedToken,
+    childAuthTokenExpires: { $gt: Date.now() },
+  });
+
+  //2. If token has not expired, and there is user, set new password
+  if (!child) {
+    return next(new AppError("Token is invalid or has expired", 400));
+  }
+
+  child.email = req.body.email;
+  child.password = req.body.password;
+  child.passwordConfirm = req.body.passwordConfirm;
+  child.phoneNumber = req.body.phoneNumber;
+  child.childAuthToken = undefined;
+  child.childAuthTokenExpires = undefined;
+  await child.save();
+
+  //3. Update changedPasswordAt property for the user
+  res.status(201).json({
+    status: "success",
+  });
 });
 
 export const login = catchAsync(async function (
@@ -139,19 +264,26 @@ export const login = catchAsync(async function (
   createSendToken(user, 200, res);
 });
 
+export const logout = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  res.clearCookie("jwt");
+
+  res.status(200).json({
+    status: "success",
+  });
+});
+
 export const protect = catchAsync(async function (
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   //1. Get token and check if it's there
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
+
+  const token = req.cookies.jwt;
 
   if (!token) {
     return next(
@@ -168,6 +300,10 @@ export const protect = catchAsync(async function (
   const currentUser = await User.findById(decoded.id);
 
   if (!currentUser) {
+    res.cookie("jwt", "", {
+      expires: new Date(Date.now() + 1000),
+      httpOnly: true,
+    });
     return next(new AppError("The user no longer exists", 401));
   }
   //4. Check if user changed password after the token was issued
@@ -208,18 +344,12 @@ export const forgotPassword = catchAsync(async function (
   //2. Generate the radom reset token
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
+
   //3. Send it back as and email
-  const resetURL = `${req.protocol}://${req.get(
-    "host"
-  )}/api/users/resetpassword/${resetToken}`;
-
-  const message = `Forgot your password? Submit a PATCH request with your new password and password Confirm to: ${resetURL},\nIf you didn't forget your password, please ignore this email`;
-
   try {
     await sendReset({
       email: user.email,
-      subject: "Your password reset token (valid for 10 minutes)",
-      message,
+      token: resetToken,
     });
 
     res.status(200).json({
@@ -261,14 +391,12 @@ export const resetPassword = catchAsync(async function (
   }
 
   user.password = req.body.password;
-  // user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordConfirm = req.body.passwordConfirm;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
 
   //3. Update changedPasswordAt property for the user
-  //4. Lof the user in, send JWT
-  createSendToken(user, 200, res);
 });
 
 export const updatePassword = catchAsync(async function (

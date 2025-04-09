@@ -6,6 +6,7 @@ import {
   createArticle,
   deleteArticle,
   getAllArticles,
+  getAllVisibleArticles,
   getOneArticle,
   registerPremise,
   updateArticle,
@@ -16,21 +17,19 @@ const router = Router();
 
 router.use(protect);
 
-router.get("/", getAllArticles);
-router.get("/:id", getOneArticle);
-
+router.get("/getvisible", getAllVisibleArticles);
 router.post("/premise", registerPremise);
 
 router.post("/buyarticlesonline", buyArticlesOnline);
 router.post("/buyarticlesonline/:id", buyArticlesOnlineForChild);
 
+router.get("/:id", getOneArticle);
 router.use(restrictTo(["admin", "employee"]));
 
 router.post("/sellinperson/:id", buyArticlesInPerson);
 
 router.use(restrictTo(["admin"]));
-
-router.post("/", createArticle);
+router.route("/").get(getAllArticles).post(createArticle);
 router.route("/:id").patch(updateArticle).delete(deleteArticle);
 
 export default router;

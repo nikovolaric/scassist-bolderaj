@@ -10,7 +10,9 @@ import {
   generatePreInvoicePDFBuffer,
 } from "../templates/sendPreInvoiceTemplate";
 import {
+  generateChildAuthMail,
   generateGiftCodeMail,
+  generatePasswordResetMail,
   generateVisitMail,
 } from "../templates/mailTemplates";
 
@@ -135,12 +137,14 @@ export const sendReset = async function (options: any) {
     },
   } as TransportOptions);
 
+  const html = generatePasswordResetMail(options.token);
+
   //2. Define the email options
   const mailOptions = {
-    from: "Niko Volarić <volke@gmail.com>",
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
+    from: "Bolderaj <info@lamastrategies.com>",
+    to: "niko.volaric@gmail.com",
+    subject: "Obnovite geslo na spodnji povezavi",
+    html,
   };
   //3. Actually send the email
   await transporter.sendMail(mailOptions);
@@ -161,7 +165,7 @@ export const sendVisit = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Plezalni center Bolderaj <info@lamastrategies.com>",
+    from: "Bolderaj <info@lamastrategies.com>",
     to: "niko.volaric@gmail.com",
     subject: "Hvala za vaš obisk",
     html,
@@ -188,6 +192,30 @@ export const sendCode = async function (options: any) {
     from: "Plezalni center Bolderaj <info@lamastrategies.com>",
     to: "niko.volaric@gmail.com",
     subject: "Darilna koda",
+    html,
+  };
+  //3. Actually send the email
+  await transporter.sendMail(mailOptions);
+};
+
+export const sendChildAuth = async function (options: any) {
+  //1. Create transporter
+  const transporter = createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  } as TransportOptions);
+
+  const html = generateChildAuthMail(options.token);
+
+  //2. Define the email options
+  const mailOptions = {
+    from: "Bolderaj <info@lamastrategies.com>",
+    to: "niko.volaric@gmail.com",
+    subject: "Nastavite svoje vpisne podatke na spodnji povezavi",
     html,
   };
   //3. Actually send the email

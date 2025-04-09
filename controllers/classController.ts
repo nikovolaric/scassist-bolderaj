@@ -16,6 +16,40 @@ export const getAllClasses = getAll(Class);
 export const updateClass = updateOne(Class);
 export const deleteClass = deleteOne(Class);
 
+export const getMultipleDateClasses = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classes = await Class.find({
+    $expr: {
+      $gt: [{ $size: "$dates" }, 1],
+    },
+  }).sort({ dates: 1 });
+
+  res.status(200).json({
+    status: "success",
+    classes,
+  });
+});
+
+export const getSingleDateClasses = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const allClasses = await Class.find({ dates: { $size: 1 } }).sort({
+    dates: 1,
+  });
+
+  const classes = allClasses.filter((el) => el.dates[0] > new Date());
+
+  res.status(200).json({
+    status: "success",
+    classes,
+  });
+});
+
 export const createClass = catchAsync(async function (
   req: Request,
   res: Response,
@@ -71,29 +105,38 @@ export const signUpForClassOnline = catchAsync(async function (
 
   if (!currentUser) return next(new AppError("User not found", 404));
 
-  const article = await Article.findById(req.params.id);
+  const article = await Article.findById(req.body.articleId);
+
+  const classes = req.body.classes;
 
   if (!article) return next(new AppError("Article not found", 404));
 
-  const currentClass = await Class.findById(article.class);
+  for (const classId of classes) {
+    const currentClass = await Class.findById(classId);
 
-  if (!currentClass) return next(new AppError("Class not found", 404));
+    if (!currentClass) return next(new AppError("Class not found", 404));
 
-  if (
-    currentClass.full ||
-    currentClass.students.length >= currentClass.maxStudents
-  )
-    return next(new AppError("Class is full", 400));
+    if (
+      currentClass.full ||
+      currentClass.students.length >= currentClass.maxStudents
+    )
+      return next(new AppError("Class is full", 400));
 
-  if (
-    currentClass.students.map((student) => student.student === currentUser._id)
-      .length > 0
-  )
-    return next(new AppError("You are already signed up for this class", 400));
+    if (
+      currentClass.students.map(
+        (student) => student.student === currentUser._id
+      ).length > 0
+    )
+      return next(
+        new AppError("You are already signed up for this class", 400)
+      );
 
-  currentClass.students.push({ student: currentUser._id, attendance: [] });
-  if (currentClass.students.length >= currentClass.maxStudents) {
-    currentClass.full = true;
+    currentClass.students.push({ student: currentUser._id, attendance: [] });
+    if (currentClass.students.length >= currentClass.maxStudents) {
+      currentClass.full = true;
+    }
+
+    await currentClass.save({ validateBeforeSave: false });
   }
 
   if (!req.body.paymentMethod) {
@@ -112,13 +155,13 @@ export const signUpForClassOnline = catchAsync(async function (
       businessPremiseID: "PC1",
       electronicDeviceID: "BO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.price,
-      paymentAmount: article.price,
+      invoiceAmount: article.classPriceData.price,
+      paymentAmount: article.classPriceData.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.price,
-          taxAmount: article.price * article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          taxAmount: article.classPriceData.price * article.taxRate,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -139,8 +182,8 @@ export const signUpForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.price,
-        taxAmount: article.price * article.taxRate,
+        taxableAmount: article.classPriceData.price,
+        taxAmount: article.classPriceData.price * article.taxRate,
         quantity: 1,
         item: `${article.name}`,
       },
@@ -150,11 +193,9 @@ export const signUpForClassOnline = catchAsync(async function (
     };
 
     const newInvoice = await Invoice.create(invoiceDataToSave);
-    await currentClass.save({ validateBeforeSave: false });
 
     res.status(200).json({
       status: "success",
-      class: currentClass,
       invoice: newInvoice,
     });
   }
@@ -172,8 +213,12 @@ export const signUpForClassOnline = catchAsync(async function (
       items: [
         {
           taxRate: article.taxRate,
-          taxableAmount: article.price,
-          taxAmount: article.price * article.taxRate,
+          taxableAmount: article.endDate
+            ? article.classPriceData.price
+            : article.price,
+          taxAmount:
+            (article.endDate ? article.classPriceData.price : article.price) *
+            article.taxRate,
           quantity: 1,
           item: `${article.name}`,
         },
@@ -183,11 +228,8 @@ export const signUpForClassOnline = catchAsync(async function (
 
     const preInvoice = await PreInvoice.create(preInvoiceData);
 
-    await currentClass.save({ validateBeforeSave: false });
-
     res.status(200).json({
       status: "success",
-      class: currentClass,
       preInvoice,
     });
   }
@@ -198,7 +240,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const childId = req.body.childId;
+  const childId = req.params.id;
 
   if (
     req.user.parentOf.filter((el) => el.child.toString() === childId).length ===
@@ -210,29 +252,37 @@ export const signUpChildForClassOnline = catchAsync(async function (
 
   if (!child) return next(new AppError("User not found", 404));
 
-  const article = await Article.findById(req.params.id);
+  const article = await Article.findById(req.body.articleId);
 
   if (!article) return next(new AppError("Article not found", 404));
 
-  const currentClass = await Class.findById(article.class);
+  const classes = req.body.classes;
 
-  if (!currentClass) return next(new AppError("Class not found", 404));
+  for (const classId of classes) {
+    const currentClass = await Class.findById(classId);
 
-  if (
-    currentClass.full ||
-    currentClass.students.length >= currentClass.maxStudents
-  )
-    return next(new AppError("Class is full", 400));
+    if (!currentClass) return next(new AppError("Class not found", 404));
 
-  if (
-    currentClass.students.map((student) => student.student === child._id)
-      .length > 0
-  )
-    return next(new AppError("You are already signed up for this class", 400));
+    if (
+      currentClass.full ||
+      currentClass.students.length >= currentClass.maxStudents
+    )
+      return next(new AppError("Class is full", 400));
 
-  currentClass.students.push({ student: child._id, attendance: [] });
-  if (currentClass.students.length >= currentClass.maxStudents) {
-    currentClass.full = true;
+    if (
+      currentClass.students.filter((student) => student.student === child._id)
+        .length > 0
+    )
+      return next(
+        new AppError("You are already signed up for this class", 400)
+      );
+
+    currentClass.students.push({ student: child._id, attendance: [] });
+    if (currentClass.students.length >= currentClass.maxStudents) {
+      currentClass.full = true;
+    }
+
+    await currentClass.save({ validateBeforeSave: false });
   }
 
   if (!req.body.paymentMethod) {
@@ -251,13 +301,13 @@ export const signUpChildForClassOnline = catchAsync(async function (
       businessPremiseID: "PC1",
       electronicDeviceID: "BO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.price,
-      paymentAmount: article.price,
+      invoiceAmount: article.classPriceData.price,
+      paymentAmount: article.classPriceData.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.price,
-          taxAmount: article.price * article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          taxAmount: article.classPriceData.price * article.taxRate,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -278,8 +328,8 @@ export const signUpChildForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.price,
-        taxAmount: article.price * article.taxRate,
+        taxableAmount: article.classPriceData.price,
+        taxAmount: article.classPriceData.price * article.taxRate,
         quantity: 1,
         item: `${article.name}`,
       },
@@ -289,11 +339,9 @@ export const signUpChildForClassOnline = catchAsync(async function (
     };
 
     const newInvoice = await Invoice.create(invoiceDataToSave);
-    await currentClass.save({ validateBeforeSave: false });
 
     res.status(200).json({
       status: "success",
-      class: currentClass,
       invoice: newInvoice,
     });
   }
@@ -311,8 +359,8 @@ export const signUpChildForClassOnline = catchAsync(async function (
       items: [
         {
           taxRate: article.taxRate,
-          taxableAmount: article.price,
-          taxAmount: article.price * article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          taxAmount: article.classPriceData.price * article.taxRate,
           quantity: 1,
           item: `${article.name}`,
         },
@@ -322,11 +370,8 @@ export const signUpChildForClassOnline = catchAsync(async function (
 
     const preInvoice = await PreInvoice.create(preInvoiceData);
 
-    await currentClass.save({ validateBeforeSave: false });
-
     res.status(200).json({
       status: "success",
-      class: currentClass,
       preInvoice,
     });
   }
@@ -377,7 +422,30 @@ export const getMyClasses = catchAsync(async function (
 ) {
   const classes = await Class.find({
     students: { $elemMatch: { student: req.user._id } },
-  }).select("name teacher dates time");
+  }).select("name teacher dates time className");
+
+  res.status(200).json({
+    status: "success",
+    classes,
+  });
+});
+
+export const getChildClasses = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const childId = req.params.id;
+
+  if (
+    req.user.parentOf.filter((el) => el.child.toString() === childId).length ===
+    0
+  )
+    return next(new AppError("This is not your child", 403));
+
+  const classes = await Class.find({
+    students: { $elemMatch: { student: childId } },
+  }).select("name teacher dates time className");
 
   res.status(200).json({
     status: "success",

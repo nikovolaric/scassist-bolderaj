@@ -1,6 +1,7 @@
 import { Query, Schema, Types, model } from "mongoose";
 
 interface IClass {
+  className: string;
   teacher: Schema.Types.ObjectId;
   hourlyRate: number;
   students: {
@@ -17,6 +18,10 @@ interface IClass {
 
 const classSchema = new Schema<IClass>(
   {
+    className: {
+      type: String,
+      required: true,
+    },
     teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
     hourlyRate: { type: Number, required: true },
     students: [
@@ -32,7 +37,7 @@ const classSchema = new Schema<IClass>(
     weekDay: { type: Number },
     time: [Number],
   },
-  { timestamps: true }
+  { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );
 
 classSchema.pre("save", function (next) {
@@ -52,6 +57,16 @@ classSchema.pre("find", function (next) {
   }
 
   next();
+});
+
+classSchema.virtual("hours").get(function () {
+  return this.time.map((t: number) => {
+    const hours = Math.floor(t);
+    const minutes = Math.round((t - hours) * 60);
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
+  });
 });
 
 const Class = model<IClass>("Class", classSchema);

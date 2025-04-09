@@ -174,7 +174,7 @@ export function generatePreInvoiceMail(invoiceData: any) {
       <mj-column>
         <mj-text align="left">Pri plačilu navedite referenco ${
           invoiceData.reference_number
-        } €</mj-text>
+        }</mj-text>
       </mj-column>
     </mj-section>
    

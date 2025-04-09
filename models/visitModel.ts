@@ -26,15 +26,15 @@ const visitSchema = new Schema<IVisit>(
   { timestamps: true }
 );
 
-visitSchema.post("save", async function (doc, next) {
-  await doc.populate({ path: "user", select: "firstName" });
+// visitSchema.post("save", async function (doc, next) {
+//   await doc.populate({ path: "user", select: "firstName" });
 
-  const user = doc.user as any;
+//   const user = doc.user as any;
 
-  await sendVisit({ firstName: user.firstName });
+//   await sendVisit({ firstName: user.firstName });
 
-  next();
-});
+//   next();
+// });
 
 const Visit = model<IVisit>("Visit", visitSchema);
 

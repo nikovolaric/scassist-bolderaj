@@ -7,12 +7,13 @@ interface ITicket {
   type: string;
   duration: number;
   visits: number;
+  visitsLeft: number;
   usedOn: Date | undefined;
   used: Boolean;
-  canUseUntil: Date | undefined;
   user: Schema.Types.ObjectId;
   company: Schema.Types.ObjectId;
   giftCode: string | undefined;
+  morning: Boolean;
 }
 
 const ticketSchema = new Schema<ITicket>(
@@ -33,19 +34,18 @@ const ticketSchema = new Schema<ITicket>(
     type: {
       type: String,
       required: [true, "Ticket must have a type"],
-      enum: ["dnevna", "terminska", "paket", "dopoldanska"],
+      enum: ["dnevna", "terminska", "paket"],
     },
+    morning: Boolean,
     duration: Number,
     visits: Number,
+    visitsLeft: Number,
     usedOn: {
       type: Date,
     },
     used: {
       type: Boolean,
       default: false,
-    },
-    canUseUntil: {
-      type: Date,
     },
     user: {
       type: Schema.Types.ObjectId,
@@ -61,6 +61,14 @@ const ticketSchema = new Schema<ITicket>(
   },
   { timestamps: true }
 );
+
+ticketSchema.pre("save", function (next) {
+  if (this.isNew) {
+    this.visitsLeft = this.visits;
+  }
+
+  next();
+});
 
 const Ticket = model("Ticket", ticketSchema);
 

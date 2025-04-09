@@ -9,9 +9,16 @@ interface IArticle {
   ageGroup: string;
   visits: number;
   duration: number;
-  class: Schema.Types.ObjectId;
   label: string;
   hidden: boolean;
+  morning: Boolean;
+  noClasses: number;
+  startDate: Date;
+  endDate: Date;
+  classPriceData: {
+    price: number;
+    priceDDV: number;
+  };
 }
 
 const articleSchema = new Schema<IArticle>(
@@ -31,28 +38,28 @@ const articleSchema = new Schema<IArticle>(
     priceDDV: Number,
     type: {
       type: String,
-      enum: ["dnevna", "paket", "terminska", "dopoldanska"],
+      enum: ["dnevna", "paket", "terminska"],
     },
+    morning: Boolean,
     ageGroup: {
       type: String,
       enum: ["preschool", "school", "student", "adult"],
     },
     visits: Number,
     duration: Number,
-    class: {
-      type: Schema.Types.ObjectId,
-      ref: "Class",
-    },
     label: {
       type: String,
       enum: ["V", "T", "I"],
     },
+    noClasses: Number,
     hidden: {
       type: Boolean,
       default: true,
     },
+    startDate: Date,
+    endDate: Date,
   },
-  { timestamps: true }
+  { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );
 
 articleSchema.pre("save", function (next) {
@@ -61,6 +68,29 @@ articleSchema.pre("save", function (next) {
   this.priceDDV = Number((this.price + this.price * this.taxRate).toFixed(2));
 
   next();
+});
+
+articleSchema.virtual("classPriceData").get(function () {
+  if (this.endDate) {
+    const ms = 1000 * 60 * 60 * 24 * 7;
+    const totalWeeks = Math.floor(
+      (Date.parse(this.endDate.toDateString()) -
+        Date.parse(this.startDate.toDateString())) /
+        ms
+    );
+    const weeksLeft = Math.floor(
+      (Date.parse(this.endDate.toDateString()) - Date.now()) / ms
+    );
+    const price = (this.price * weeksLeft) / totalWeeks;
+    const priceDDV = price * (1 + this.taxRate);
+
+    const classPriceData = {
+      price,
+      priceDDV,
+    };
+
+    return classPriceData;
+  }
 });
 
 const Article = model<IArticle>("Article", articleSchema);

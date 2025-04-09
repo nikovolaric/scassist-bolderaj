@@ -6,16 +6,20 @@ import {
   updateUsersRole,
   updateMe,
   deleteMe,
-  createChildCode,
   getMyChildren,
   getMyOneChild,
+  createMyChildLoginInfo,
 } from "../controllers/userController";
 import {
+  createChild,
   forgotPassword,
   login,
+  logout,
   protect,
   resetPassword,
   restrictTo,
+  sendChildAuthData,
+  setChildAuthData,
   signup,
   updatePassword,
 } from "../controllers/authController";
@@ -30,13 +34,17 @@ router.patch("/resetpassword/:token", resetPassword);
 
 router.use(protect);
 
+router.post("/logout", logout);
 router.patch("/updatepassword", updatePassword);
 router.get("/getme", getMe);
 router.patch("/updateme", updateMe);
 router.delete("/deleteme", deleteMe);
-router.post("/createchildcode", createChildCode);
 router.get("/getmychildren", getMyChildren);
 router.get("/getmychildren/:id", getMyOneChild);
+router.post("/childlogininfo/:id", createMyChildLoginInfo);
+router.post("/sendchildauthmail/:id", sendChildAuthData);
+router.post("/setchildauth/:token", setChildAuthData);
+router.post("/createchild", createChild);
 
 router.use(restrictTo(["admin", "employee"]));
 

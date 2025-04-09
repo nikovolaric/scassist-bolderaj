@@ -72,7 +72,7 @@ const sendErrorProd = function (err: iErr, res: Response) {
   }
 };
 
-module.exports = function (
+function errorHandlerFunction(
   err: iErr,
   req: Request,
   res: Response,
@@ -97,6 +97,7 @@ module.exports = function (
     if (error.name === "TokenExpiredError") error = handleJWTExpiredError();
 
     sendErrorProd(error, res);
-    // next();
   }
-};
+}
+
+export default errorHandlerFunction;

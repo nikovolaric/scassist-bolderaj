@@ -143,46 +143,6 @@ export const deleteMe = catchAsync(
   }
 );
 
-export const createChildCode = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const me = await User.findById(req.user.id);
-
-  if (!me) return next(new AppError("User does not exist!", 404));
-
-  const today = new Date();
-  const birthDate = new Date(me.birthDate);
-
-  let age: number = today.getFullYear() - birthDate.getFullYear();
-
-  if (
-    today.getMonth() - birthDate.getMonth() < 0 ||
-    (today.getMonth() - birthDate.getMonth() === 0 &&
-      today.getDate() - birthDate.getDate() < 0)
-  ) {
-    age--;
-  }
-
-  if (age < 18)
-    return next(
-      new AppError("You must be at least 18 to access this route!", 404)
-    );
-
-  me.childActivationCode = {
-    code: generateRandomString(8),
-    signedAt: new Date(),
-  };
-
-  await me.save({ validateBeforeSave: false });
-
-  res.status(201).json({
-    status: "success",
-    childActivationCode: me.childActivationCode,
-  });
-});
-
 export const getMyChildren = catchAsync(async function (
   req: Request,
   res: Response,
@@ -203,6 +163,30 @@ export const getMyOneChild = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const myChild = await User.findById(req.params.id).select(
+    "firstName lastName unusedTickets visits birthDate"
+  );
+
+  if (!myChild) return next(new AppError("User does not exist", 404));
+
+  const children = req.user.parentOf.filter(
+    (child) => child.child.toString() === myChild.id
+  );
+
+  if (children.length === 0)
+    return next(new AppError("This is not your child", 403));
+
+  res.status(200).json({
+    status: "success",
+    myChild,
+  });
+});
+
+export const createMyChildLoginInfo = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const myChild = await User.findById(req.params.id);
 
   if (!myChild) return next(new AppError("User does not exist", 404));
@@ -213,6 +197,11 @@ export const getMyOneChild = catchAsync(async function (
 
   if (children.length === 0)
     return next(new AppError("This is not your child", 403));
+
+  myChild.email = req.body.email;
+  myChild.password = req.body.password;
+  myChild.passwordConfirm = req.body.passwordConfirm;
+  await myChild.save();
 
   res.status(200).json({
     status: "success",

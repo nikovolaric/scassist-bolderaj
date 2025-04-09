@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 import { isMobilePhone } from "validator";
 import bcrypt from "bcryptjs";
 import isEmail from "validator/lib/isEmail";
@@ -28,7 +28,7 @@ interface IUser {
   agreesToTerms: Boolean;
   signedForNewsletter: Boolean;
   parentOf: {
-    child: Schema.Types.ObjectId;
+    child: Types.ObjectId;
     agreesToTerms: boolean;
     signedAt: Date;
   }[];
@@ -39,146 +39,156 @@ interface IUser {
   passwordChangedAt: Date;
   passwordResetToken: String | undefined;
   passwordResetExpires: Date | undefined;
+  childAuthToken: string | undefined;
+  childAuthTokenExpires: Date | undefined;
   active: Boolean;
   correctPassword: Function;
   find: Function;
   changedPasswordAfter: Function;
   createPasswordResetToken: Function;
+  createChildAuthToken: Function;
   populate: Function;
 }
 
-const userSchema = new Schema<IUser>({
-  firstName: {
-    type: String,
-    required: [true, "User must have a first name"],
-  },
-  lastName: {
-    type: String,
-    required: [true, "User must have a last name"],
-  },
-  birthDate: {
-    type: Date,
-    required: [true, "User must have a birth date"],
-  },
-  phoneNumber: {
-    type: String,
-    required: [true, "User must have a phone number"],
-    validate: isMobilePhone,
-  },
-  email: {
-    type: String,
-    validate: isEmail,
-    unique: true,
-  },
-  address: {
-    type: String,
-    required: [true, "User must have an address"],
-  },
-  city: {
-    type: String,
-    required: [true, "User must have a city"],
-  },
-  postalCode: {
-    type: String,
-    required: [true, "User must have a postal code"],
-  },
-  country: {
-    type: String,
-    required: [true, "User must have a country"],
-  },
-  password: {
-    type: String,
-    minlength: [8, "Password must be at least 8 characters long"],
-  },
-  passwordConfirm: {
-    type: String,
-    validate: {
-      validator: function (val) {
-        return val === this.password;
-      },
-      message: "Passwords must match",
-    },
-  },
-  role: [
-    {
+const userSchema = new Schema<IUser>(
+  {
+    firstName: {
       type: String,
-      enum: ["admin", "user", "coach", "employee", "routeSetter"],
-      required: [true, "User must have a role"],
-      default: "user",
+      required: [true, "User must have a first name"],
     },
-  ],
-  canInvoice: {
-    type: Boolean,
-    default: false,
-  },
-  taxNo: {
-    type: String,
-  },
-  invoiceNickname: {
-    type: String,
-  },
-  company: {
-    type: Schema.Types.ObjectId,
-    ref: "Company",
-  },
-  unusedTickets: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Ticket",
+    lastName: {
+      type: String,
+      required: [true, "User must have a last name"],
     },
-  ],
-  usedTickets: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Ticket",
+    birthDate: {
+      type: Date,
+      required: [true, "User must have a birth date"],
     },
-  ],
-  visits: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Visit",
+    phoneNumber: {
+      type: String,
+      validate: isMobilePhone,
     },
-  ],
-  agreesToTerms: {
-    type: Boolean,
-    default: false,
-  },
-  signedForNewsletter: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now(),
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now(),
-  },
-  passwordChangedAt: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  parentOf: [
-    {
-      child: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
+    email: {
+      type: String,
+      validate: isEmail,
+      unique: true,
+      sparse: true,
+    },
+    address: {
+      type: String,
+      required: [true, "User must have an address"],
+    },
+    city: {
+      type: String,
+      required: [true, "User must have a city"],
+    },
+    postalCode: {
+      type: String,
+      required: [true, "User must have a postal code"],
+    },
+    country: {
+      type: String,
+      required: [true, "User must have a country"],
+    },
+    password: {
+      type: String,
+      minlength: [8, "Password must be at least 8 characters long"],
+    },
+    passwordConfirm: {
+      type: String,
+      validate: {
+        validator: function (val) {
+          return val === this.password;
+        },
+        message: "Passwords must match",
       },
-      agreesToTerms: Boolean,
-      signedAt: Date,
     },
-  ],
-  parentContact: {
-    phoneNumber: String,
-    email: String,
+    role: [
+      {
+        type: String,
+        enum: ["admin", "user", "coach", "employee", "routeSetter"],
+        required: [true, "User must have a role"],
+        default: "user",
+      },
+    ],
+    canInvoice: {
+      type: Boolean,
+      default: false,
+    },
+    taxNo: {
+      type: String,
+    },
+    invoiceNickname: {
+      type: String,
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+    },
+    unusedTickets: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Ticket",
+      },
+    ],
+    usedTickets: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Ticket",
+      },
+    ],
+    visits: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Visit",
+      },
+    ],
+    agreesToTerms: {
+      type: Boolean,
+      default: false,
+    },
+    signedForNewsletter: {
+      type: Boolean,
+      default: false,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now(),
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now(),
+    },
+    passwordChangedAt: Date,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+    parentOf: [
+      {
+        child: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+        agreesToTerms: Boolean,
+        signedAt: Date,
+      },
+    ],
+    parentContact: {
+      phoneNumber: String,
+      email: String,
+    },
+    childAuthToken: String,
+    childAuthTokenExpires: Date,
+    active: {
+      type: Boolean,
+      default: true,
+      select: false,
+    },
   },
-  childActivationCode: { code: { type: String, unique: true }, signedAt: Date },
-  active: {
-    type: Boolean,
-    defailt: true,
-    select: false,
-  },
-});
+  {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+  }
+);
 
 userSchema.pre("save", async function (next) {
   if (this.passwordResetExpires || !this.isModified("password")) return next();
@@ -186,7 +196,9 @@ userSchema.pre("save", async function (next) {
   if (!this.agreesToTerms)
     return next(new Error("You must agree to terms and conditions"));
 
-  this.phoneNumber = this.phoneNumber.replaceAll(" ", "");
+  if (this.phoneNumber || this.phoneNumber !== "") {
+    this.phoneNumber = this.phoneNumber.replaceAll(" ", "");
+  }
 
   if (this.password) {
     this.password = await bcrypt.hash(this.password, 12);
@@ -209,15 +221,48 @@ userSchema.pre(/^find/, function (next) {
   next();
 });
 
-// userSchema.pre(/^find/, function (next) {
-//   // @ts-ignore
-//   this.populate({
-//     path: "vehicle",
-//     select: "-__v -user",
-//   });
+userSchema.virtual("age").get(function () {
+  if (!this.birthDate) return null;
 
-//   next();
-// });
+  const birth = new Date(this.birthDate);
+  const today = new Date();
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  const dayDiff = today.getDate() - birth.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age--;
+  }
+
+  return age;
+});
+
+userSchema.virtual("ageGroup").get(function () {
+  if (!this.birthDate) return null;
+
+  const birth = new Date(this.birthDate);
+  const today = new Date();
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  const dayDiff = today.getDate() - birth.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age--;
+  }
+
+  const ageGroup =
+    age <= 6
+      ? "preschool"
+      : age > 6 && age <= 18
+      ? "school"
+      : age > 18 && age <= 26
+      ? "student"
+      : "adult";
+
+  return ageGroup;
+});
 
 userSchema.methods.correctPassword = async function (
   candidatePassword: string,
@@ -247,6 +292,17 @@ userSchema.methods.createPasswordResetToken = function () {
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
+};
+
+userSchema.methods.createChildAuthToken = function () {
+  const childAuthToken = randomBytes(32).toString("hex");
+
+  this.childAuthToken = createHash("sha256")
+    .update(childAuthToken)
+    .digest("hex");
+  this.childAuthTokenExpires = Date.now() + 10 * 60 * 1000;
+
+  return childAuthToken;
 };
 
 const User = model<IUser>("User", userSchema);
