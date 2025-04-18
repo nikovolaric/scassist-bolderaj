@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import catchAsync from "../utils/catchAsync";
-import { createOne } from "./handlerFactory";
 import PreInvoice from "../models/preInvoiceModel";
 import Invoice from "../models/invoiceModel";
 import User from "../models/userModel";
@@ -61,6 +60,7 @@ export const createPreInvoice = catchAsync(async function (
     date: req.body.date,
     dueDate: req.body.dueDate,
     items: soldItems,
+    user: user?._id,
   };
 
   const preInvoice = await PreInvoice.create(preInvoiceDataToSave);
@@ -159,10 +159,8 @@ export const checkPayedPreInvoices = catchAsync(async function (
     .map((el: any) => el[0].split(";").slice(-1)[0])
     .slice(1);
 
-  // ✅ Pridobi vse preInvoice naenkrat
   const preInvoices = await PreInvoice.find({ reference: { $in: references } });
 
-  // ✅ Pridobi zadnji invoice samo enkrat
   let lastInvoice = await Invoice.findOne().sort({
     "invoiceData.invoiceNo": -1,
   });
@@ -228,5 +226,22 @@ export const checkPayedPreInvoices = catchAsync(async function (
 
   res.status(201).json({
     status: "success",
+  });
+});
+
+export const getMyUnpaidPreInvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const preInvoices = await PreInvoice.find({
+    user: req.user._id,
+    payed: { $ne: true },
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: preInvoices.length,
+    preInvoices,
   });
 });

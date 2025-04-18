@@ -23,6 +23,7 @@ import {
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import Visit from "../models/visitModel";
+import { makePayment } from "./paymentController";
 
 export const createArticle = createOne(Article);
 export const updateArticle = updateOne(Article);

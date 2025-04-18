@@ -14,6 +14,7 @@ import {
   signUpForClassOnline,
   updateClass,
 } from "../controllers/classController";
+import { makePayment } from "../controllers/paymentController";
 
 const router = Router();
 
@@ -23,8 +24,8 @@ router.get("/myclasses", getMyClasses);
 router.get("/multipledates", getMultipleDateClasses);
 router.get("/singledates", getSingleDateClasses);
 
-router.post("/signuponline", signUpForClassOnline);
-router.post("/child/signuponline/:id", signUpChildForClassOnline);
+router.post("/signuponline", makePayment, signUpForClassOnline);
+router.post("/child/signuponline/:id", makePayment, signUpChildForClassOnline);
 router.get("/child/getclasses/:id", getChildClasses);
 
 router.get("/:id", getOneClass);

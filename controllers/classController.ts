@@ -25,6 +25,7 @@ export const getMultipleDateClasses = catchAsync(async function (
     $expr: {
       $gt: [{ $size: "$dates" }, 1],
     },
+    ...req.query,
   }).sort({ dates: 1 });
 
   res.status(200).json({
@@ -38,7 +39,10 @@ export const getSingleDateClasses = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const allClasses = await Class.find({ dates: { $size: 1 } }).sort({
+  const allClasses = await Class.find({
+    dates: { $size: 1 },
+    ...req.query,
+  }).sort({
     dates: 1,
   });
 
@@ -105,9 +109,9 @@ export const signUpForClassOnline = catchAsync(async function (
 
   if (!currentUser) return next(new AppError("User not found", 404));
 
-  const article = await Article.findById(req.body.articleId);
+  const article = await Article.findById(req.body.articles.articleId);
 
-  const classes = req.body.classes;
+  const classes = req.body.articles.classes;
 
   if (!article) return next(new AppError("Article not found", 404));
 
@@ -139,9 +143,7 @@ export const signUpForClassOnline = catchAsync(async function (
     await currentClass.save({ validateBeforeSave: false });
   }
 
-  if (!req.body.paymentMethod) {
-    //preveri stripe plačilo
-
+  if (req.body.articles.paymentMethod === "") {
     const lastInvoice = await Invoice.findOne().sort({
       "invoiceData.invoiceNo": -1,
     });
@@ -155,13 +157,21 @@ export const signUpForClassOnline = catchAsync(async function (
       businessPremiseID: "PC1",
       electronicDeviceID: "BO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.classPriceData.price,
-      paymentAmount: article.classPriceData.price,
+      invoiceAmount: article.endDate
+        ? article.classPriceData.price
+        : article.price,
+      paymentAmount: article.endDate
+        ? article.classPriceData.price
+        : article.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.classPriceData.price,
-          taxAmount: article.classPriceData.price * article.taxRate,
+          taxableAmount: article.endDate
+            ? article.classPriceData.price
+            : article.price,
+          taxAmount: article.endDate
+            ? article.classPriceData.price * article.taxRate
+            : article.price * article.taxRate,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -182,8 +192,12 @@ export const signUpForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.classPriceData.price,
-        taxAmount: article.classPriceData.price * article.taxRate,
+        taxableAmount: article.endDate
+          ? article.classPriceData.price
+          : article.price,
+        taxAmount: article.endDate
+          ? article.classPriceData.price * article.taxRate
+          : article.price * article.taxRate,
         quantity: 1,
         item: `${article.name}`,
       },
@@ -200,7 +214,7 @@ export const signUpForClassOnline = catchAsync(async function (
     });
   }
 
-  if (req.body.paymentMethod === "preInvoice") {
+  if (req.body.articles.paymentMethod === "preInvoice") {
     const preInvoiceData = {
       recepient: {
         name: `${currentUser.firstName} ${currentUser.lastName}`,
@@ -224,6 +238,8 @@ export const signUpForClassOnline = catchAsync(async function (
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      user: req.user._id,
+      classes,
     };
 
     const preInvoice = await PreInvoice.create(preInvoiceData);
@@ -252,11 +268,11 @@ export const signUpChildForClassOnline = catchAsync(async function (
 
   if (!child) return next(new AppError("User not found", 404));
 
-  const article = await Article.findById(req.body.articleId);
+  const article = await Article.findById(req.body.articles.articleId);
 
   if (!article) return next(new AppError("Article not found", 404));
 
-  const classes = req.body.classes;
+  const classes = req.body.articles.classes;
 
   for (const classId of classes) {
     const currentClass = await Class.findById(classId);
@@ -285,7 +301,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
     await currentClass.save({ validateBeforeSave: false });
   }
 
-  if (!req.body.paymentMethod) {
+  if (req.body.articles.paymentMethod === "") {
     //preveri stripe plačilo
 
     const lastInvoice = await Invoice.findOne().sort({
@@ -301,13 +317,21 @@ export const signUpChildForClassOnline = catchAsync(async function (
       businessPremiseID: "PC1",
       electronicDeviceID: "BO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.classPriceData.price,
-      paymentAmount: article.classPriceData.price,
+      invoiceAmount: article.endDate
+        ? article.classPriceData.price
+        : article.price,
+      paymentAmount: article.endDate
+        ? article.classPriceData.price
+        : article.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.classPriceData.price,
-          taxAmount: article.classPriceData.price * article.taxRate,
+          taxableAmount: article.endDate
+            ? article.classPriceData.price
+            : article.price,
+          taxAmount: article.endDate
+            ? article.classPriceData.price * article.taxRate
+            : article.price * article.taxRate,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -328,8 +352,12 @@ export const signUpChildForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.classPriceData.price,
-        taxAmount: article.classPriceData.price * article.taxRate,
+        taxableAmount: article.endDate
+          ? article.classPriceData.price
+          : article.price,
+        taxAmount: article.endDate
+          ? article.classPriceData.price * article.taxRate
+          : article.price * article.taxRate,
         quantity: 1,
         item: `${article.name}`,
       },
@@ -346,7 +374,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
     });
   }
 
-  if (req.body.paymentMethod === "preInvoice") {
+  if (req.body.articles.paymentMethod === "preInvoice") {
     const preInvoiceData = {
       recepient: {
         name: `${req.user.firstName} ${req.user.lastName}`,
@@ -359,13 +387,19 @@ export const signUpChildForClassOnline = catchAsync(async function (
       items: [
         {
           taxRate: article.taxRate,
-          taxableAmount: article.classPriceData.price,
-          taxAmount: article.classPriceData.price * article.taxRate,
+          taxableAmount: article.endDate
+            ? article.classPriceData.price
+            : article.price,
+          taxAmount:
+            (article.endDate ? article.classPriceData.price : article.price) *
+            article.taxRate,
           quantity: 1,
           item: `${article.name}`,
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      user: req.user._id,
+      classes,
     };
 
     const preInvoice = await PreInvoice.create(preInvoiceData);

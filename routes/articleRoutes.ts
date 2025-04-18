@@ -12,6 +12,7 @@ import {
   updateArticle,
 } from "../controllers/articleController";
 import { protect, restrictTo } from "../controllers/authController";
+import { makePayment } from "../controllers/paymentController";
 
 const router = Router();
 
@@ -20,8 +21,8 @@ router.use(protect);
 router.get("/getvisible", getAllVisibleArticles);
 router.post("/premise", registerPremise);
 
-router.post("/buyarticlesonline", buyArticlesOnline);
-router.post("/buyarticlesonline/:id", buyArticlesOnlineForChild);
+router.post("/buyarticlesonline", makePayment, buyArticlesOnline);
+router.post("/buyarticlesonline/:id", makePayment, buyArticlesOnlineForChild);
 
 router.get("/:id", getOneArticle);
 router.use(restrictTo(["admin", "employee"]));

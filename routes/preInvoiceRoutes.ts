@@ -4,12 +4,16 @@ import {
   checkPayedPreInvoices,
   createInvoiceFromPreInvoice,
   createPreInvoice,
+  getMyUnpaidPreInvoices,
 } from "../controllers/preInvoiceController";
 import multer from "multer";
 
 const router = Router();
 
 router.use(protect);
+
+router.get("/myunpaid", getMyUnpaidPreInvoices);
+
 router.use(restrictTo(["admin"]));
 
 router.route("/").post(createPreInvoice);
@@ -20,6 +24,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // Omejitev velikosti na 10 MB
 });
 
-router.post("/checkpayed",upload.single("file"), checkPayedPreInvoices);
+router.post("/checkpayed", upload.single("file"), checkPayedPreInvoices);
 
 export default router;

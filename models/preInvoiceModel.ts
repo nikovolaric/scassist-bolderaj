@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 import { sendPreInvoice } from "../utils/email";
 
 interface IPreInvoice {
@@ -25,6 +25,8 @@ interface IPreInvoice {
   totalTaxableAmount: number;
   totalAmount: number;
   payed: boolean;
+  user: Types.ObjectId;
+  classes: Types.ObjectId[];
 }
 
 const preInvoiceSchema = new Schema<IPreInvoice>(
@@ -91,6 +93,16 @@ const preInvoiceSchema = new Schema<IPreInvoice>(
       type: Number,
     },
     payed: Boolean,
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    classes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Class",
+      },
+    ],
   },
   { timestamps: true }
 );

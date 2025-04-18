@@ -65,7 +65,9 @@ const articleSchema = new Schema<IArticle>(
 articleSchema.pre("save", function (next) {
   if (!this.isNew && this.isModified("name")) return next();
 
-  this.priceDDV = Number((this.price + this.price * this.taxRate).toFixed(2));
+  this.priceDDV = parseFloat(
+    (this.price + this.price * this.taxRate).toFixed(2)
+  );
 
   next();
 });
@@ -81,8 +83,10 @@ articleSchema.virtual("classPriceData").get(function () {
     const weeksLeft = Math.floor(
       (Date.parse(this.endDate.toDateString()) - Date.now()) / ms
     );
-    const price = (this.price * weeksLeft) / totalWeeks;
-    const priceDDV = price * (1 + this.taxRate);
+    const price = parseFloat(
+      ((this.price * weeksLeft) / totalWeeks).toFixed(2)
+    );
+    const priceDDV = parseFloat((price * (1 + this.taxRate)).toFixed(2));
 
     const classPriceData = {
       price,
