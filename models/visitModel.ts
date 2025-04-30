@@ -1,5 +1,4 @@
 import { Schema, model } from "mongoose";
-import { sendVisit } from "../utils/email";
 
 interface IVisit {
   date: Date;

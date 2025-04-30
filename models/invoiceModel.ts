@@ -8,10 +8,15 @@ interface IInvoice {
     address: string;
     postalCode: string;
     city: string;
-    company: string;
-    taxNumber: string;
     email: string;
     phoneNumber: string;
+  };
+  company: {
+    name: string;
+    address: string;
+    postalCode: string;
+    city: string;
+    taxNumber: string;
   };
   invoiceDate: Date;
   serviceCompletionDate: Date;
@@ -49,10 +54,15 @@ const invoiceSchema = new Schema<IInvoice>(
       address: String,
       postalCode: String,
       city: String,
-      company: String,
-      taxNumber: String,
       email: String,
       phoneNumber: String,
+    },
+    company: {
+      name: String,
+      address: String,
+      postalCode: String,
+      city: String,
+      taxNumber: String,
     },
     invoiceDate: {
       type: Date,
@@ -150,7 +160,7 @@ invoiceSchema.pre("save", function (next) {
   if (!this.reference) {
     this.reference = `SI00 ${Math.random()
       .toString()
-      .substring(2, 10)}-${new Date().getFullYear().toString().slice(2)}`;
+      .substring(2, 10)}${new Date().getFullYear().toString().slice(2)}`;
   }
 
   next();
@@ -187,11 +197,23 @@ invoiceSchema.post("save", async function (doc, next) {
     email: doc.buyer ? buyer.email : doc.recepient.email,
     invoiceNumber: `${doc.invoiceData.businessPremises}-${doc.invoiceData.deviceNo}-${doc.invoiceData.invoiceNo}-${doc.invoiceData.year}`,
     name: buyer ? `${buyer.firstName} ${buyer.lastName}` : doc.recepient.name,
-    companyName: doc.recepient.company,
-    taxNumber: buyer ? buyer.taxNumber : doc.recepient.taxNumber,
-    address: buyer ? buyer.address : doc.recepient.address,
-    postalCode: buyer ? buyer.postalCode : doc.recepient.postalCode,
-    city: buyer ? buyer.city : doc.recepient.city,
+    companyName: doc.company.name,
+    taxNumber: doc.company.taxNumber,
+    address: doc.company.address
+      ? doc.company.address
+      : buyer
+      ? buyer.address
+      : doc.recepient.address,
+    postalCode: doc.company.postalCode
+      ? doc.company.postalCode
+      : buyer
+      ? buyer.postalCode
+      : doc.recepient.postalCode,
+    city: doc.company.city
+      ? doc.company.city
+      : buyer
+      ? buyer.city
+      : doc.recepient.city,
     invoiceDate: doc.invoiceDate,
     invoiceCompletionDate: doc.serviceCompletionDate,
     reference: doc.reference,

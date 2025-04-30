@@ -112,6 +112,11 @@ export function generateInvoiceMail(invoiceData: any) {
     <mj-section>
       <mj-column>
         <mj-text font-size="18px" font-weight="bold">Podatki o plačniku</mj-text>
+        ${
+          invoiceData.company_name
+            ? `<mj-text padding-top="3px" padding-bottom="3px">${invoiceData.company_name}</mj-text>`
+            : ""
+        }
         <mj-text padding-top="3px" padding-bottom="3px">${
           invoiceData.customer_name
         }</mj-text>
@@ -122,13 +127,8 @@ export function generateInvoiceMail(invoiceData: any) {
           invoiceData.customer_postalCode
         } ${invoiceData.custumer_city}</mj-text>
         ${
-          invoiceData.company_name
-            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka: ${invoiceData.company_name}</mj-text>`
-            : ""
-        }
-        ${
           invoiceData.tax_number
-            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka: ${invoiceData.tax_number}</mj-text>`
+            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka/ID za DDV: ${invoiceData.tax_number}</mj-text>`
             : ""
         }
       </mj-column>
@@ -242,7 +242,8 @@ export async function generateInvoicePDFBuffer(
 
   const date = formatDate(invoiceData.invoice_date);
 
-  const data = decimalZOI + process.env.BOLDERAJ_TAX_NUMBER! + date;
+  const data =
+    decimalZOI.padStart(39, "0") + process.env.BOLDERAJ_TAX_NUMBER! + date;
 
   const qrNo =
     data
@@ -293,11 +294,15 @@ export async function generateInvoicePDFBuffer(
       .moveDown();
 
     if (invoiceData.company_name) {
-      doc.text(`Podjetje: ${invoiceData.company_name}`, 50, 100 + 45);
+      doc.text(`${invoiceData.company_name}`, 50, 100 - 15);
     }
 
     if (invoiceData.tax_number) {
-      doc.text(`Davčna številka: ${invoiceData.tax_number}`, 50, 100 + 60);
+      doc.text(
+        `Davčna številka/ID za DDV: ${invoiceData.tax_number}`,
+        50,
+        100 + 45
+      );
     }
 
     doc.fillColor("#444444").fontSize(20).text("Račun", 50, 180);

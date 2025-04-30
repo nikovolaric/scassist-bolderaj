@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 
-export const makePayment = catchAsync(async function (
+export const pay = catchAsync(async function (
   req: Request,
   res: Response,
   next: NextFunction
@@ -12,6 +12,11 @@ export const makePayment = catchAsync(async function (
 
   if (!amount || !card)
     return next(new AppError("Please provide all data!", 400));
+
+  const checkoutData = await createCheckoutsession(amount);
+
+  if (checkoutData instanceof Error)
+    return next(new AppError("Plačilo ni bilo uspešno", 500));
 
   function generatePaymentBrand(): string | void {
     const cleaned = card.number.replace(/\s+/g, "");
@@ -29,10 +34,6 @@ export const makePayment = catchAsync(async function (
   }
 
   const params = new URLSearchParams({
-    entityId: "8a829418530df1d201531299e097175c",
-    amount: amount,
-    currency: "EUR",
-    paymentType: "DB",
     paymentBrand: generatePaymentBrand() as string,
     "card.number": card.number,
     "card.holder": card.holder,
@@ -41,51 +42,78 @@ export const makePayment = catchAsync(async function (
     "card.cvv": card.cvv,
   });
 
-  const result = await fetch("https://eu-test.oppwa.com/v1/payments", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization:
-        "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
-    },
-    body: params,
-  });
-
-  if (!result.ok) return next(new AppError("Something went wrong", 500));
-
-  const data = await result.json();
-
-  if (data?.result?.code !== "000.100.110") {
-    return next(new AppError("Plačilo ni bilo uspešno", 402));
-  }
-
-  next();
-});
-
-export const checkPayment = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const { id } = req.params;
-
   const result = await fetch(
-    `https://eu-test.oppwa.com/v1/checkouts/${id}/payment?entityId=8a829418530df1d201531299e097175c`,
+    `https://eu-test.oppwa.com/v1/checkouts/${checkoutData.id}/payment`,
     {
-      method: "GET",
+      method: "POST",
       headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
         Authorization:
           "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
       },
+      body: params,
     }
   );
 
   if (!result.ok) return next(new AppError("Something went wrong", 500));
 
-  const data = await result.json();
+  res.locals.checkoutId = checkoutData.id;
 
-  res.status(201).json({
-    status: "success",
-    data,
-  });
+  next();
 });
+
+const createCheckoutsession = async function (amount: string) {
+  try {
+    const params = new URLSearchParams({
+      entityId: "8a829418530df1d201531299e097175c",
+      amount: amount,
+      currency: "EUR",
+      paymentType: "DB",
+      integrity: "true",
+    });
+
+    const result = await fetch(`https://eu-test.oppwa.com/v1/checkouts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization:
+          "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
+      },
+      body: params,
+    });
+
+    const data = await result.json();
+
+    if (!result.ok) throw data;
+
+    return data;
+  } catch (error) {
+    return error as Error;
+  }
+};
+
+export const checkPayment = async function (checkoutId: string) {
+  try {
+    const paymentRes = await fetch(
+      `https://eu-test.oppwa.com/v1/checkouts/${checkoutId}/payment?entityId=8a829418530df1d201531299e097175c`,
+      {
+        method: "GET",
+        headers: {
+          Authorization:
+            "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
+        },
+      }
+    );
+
+    const paymentData = await paymentRes.json();
+    console.log(paymentData);
+    console.log(paymentData.result.parameterErrors);
+
+    if (!paymentRes.ok) throw paymentData;
+
+    return paymentData;
+  } catch (error) {
+    console.error(error);
+    return error as Error;
+  }
+};

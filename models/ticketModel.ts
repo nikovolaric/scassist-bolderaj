@@ -1,7 +1,10 @@
 import { Schema, model } from "mongoose";
 
 interface ITicket {
-  name: string;
+  name: {
+    sl: string;
+    en: string;
+  };
   soldOn: Date;
   validUntil: Date;
   type: string;
@@ -19,7 +22,8 @@ interface ITicket {
 const ticketSchema = new Schema<ITicket>(
   {
     name: {
-      type: String,
+      sl: { type: String },
+      en: { type: String },
     },
     soldOn: {
       type: Date,

@@ -23,7 +23,7 @@ import {
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import Visit from "../models/visitModel";
-import { makePayment } from "./paymentController";
+import { checkPayment } from "./paymentController";
 
 export const createArticle = createOne(Article);
 export const updateArticle = updateOne(Article);
@@ -132,6 +132,11 @@ export const buyArticlesOnline = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
+  // const paymentData = await checkPayment(res.locals.checkoutId);
+
+  // if (paymentData instanceof Error)
+  //   return next(new AppError("Something went wrong", 500));
+
   const lastInvoice = await Invoice.findOne().sort({
     "invoiceData.invoiceNo": -1,
   });
@@ -239,7 +244,7 @@ export const buyArticlesOnline = catchAsync(async function (
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
       quantity: el.quantity,
-      item: el.article.name,
+      item: el.article.name.sl,
     };
     return item;
   });
@@ -247,6 +252,7 @@ export const buyArticlesOnline = catchAsync(async function (
   const invoiceDataToSave = {
     paymentDueDate: new Date(),
     buyer: user.id,
+    company: req.body.company,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
@@ -261,7 +267,6 @@ export const buyArticlesOnline = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
-    cart,
   });
 });
 
@@ -367,7 +372,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
       quantity: el.quantity,
-      item: el.article.name,
+      item: el.article.name.sl,
     };
     return item;
   });
@@ -375,6 +380,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
   const invoiceDataToSave = {
     paymentDueDate: new Date(),
     buyer: req.user.id,
+    company: req.body.company,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
@@ -389,7 +395,6 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
-    cart,
   });
 });
 

@@ -185,6 +185,7 @@ export const signUpForClassOnline = catchAsync(async function (
     const invoiceDataToSave = {
       paymentDueDate: new Date(),
       buyer: currentUser.id,
+      company: req.body.company,
       invoiceData: {
         businessPremises: invoiceData.businessPremiseID,
         deviceNo: invoiceData.electronicDeviceID,
@@ -199,19 +200,16 @@ export const signUpForClassOnline = catchAsync(async function (
           ? article.classPriceData.price * article.taxRate
           : article.price * article.taxRate,
         quantity: 1,
-        item: `${article.name}`,
+        item: article.name.sl,
       },
       paymentMethod: "online",
       ZOI,
       EOR,
     };
 
-    const newInvoice = await Invoice.create(invoiceDataToSave);
+    await Invoice.create(invoiceDataToSave);
 
-    res.status(200).json({
-      status: "success",
-      invoice: newInvoice,
-    });
+    return next();
   }
 
   if (req.body.articles.paymentMethod === "preInvoice") {
@@ -224,6 +222,7 @@ export const signUpForClassOnline = catchAsync(async function (
         email: currentUser.email,
         phoneNumber: currentUser.phoneNumber,
       },
+      company: req.body.company,
       items: [
         {
           taxRate: article.taxRate,
@@ -234,7 +233,7 @@ export const signUpForClassOnline = catchAsync(async function (
             (article.endDate ? article.classPriceData.price : article.price) *
             article.taxRate,
           quantity: 1,
-          item: `${article.name}`,
+          item: `${article.name.sl}`,
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -345,6 +344,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
     const invoiceDataToSave = {
       paymentDueDate: new Date(),
       buyer: req.user.id,
+      company: req.body.company,
       invoiceData: {
         businessPremises: invoiceData.businessPremiseID,
         deviceNo: invoiceData.electronicDeviceID,
@@ -359,19 +359,16 @@ export const signUpChildForClassOnline = catchAsync(async function (
           ? article.classPriceData.price * article.taxRate
           : article.price * article.taxRate,
         quantity: 1,
-        item: `${article.name}`,
+        item: article.name.sl,
       },
       paymentMethod: "online",
       ZOI,
       EOR,
     };
 
-    const newInvoice = await Invoice.create(invoiceDataToSave);
+    await Invoice.create(invoiceDataToSave);
 
-    res.status(200).json({
-      status: "success",
-      invoice: newInvoice,
-    });
+    return next();
   }
 
   if (req.body.articles.paymentMethod === "preInvoice") {
@@ -384,6 +381,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
         email: req.user.email,
         phoneNumber: req.user.phoneNumber,
       },
+      company: req.body.company,
       items: [
         {
           taxRate: article.taxRate,

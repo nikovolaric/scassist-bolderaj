@@ -2,15 +2,21 @@ import { model, Schema, Types } from "mongoose";
 import { sendPreInvoice } from "../utils/email";
 
 interface IPreInvoice {
+  buyer: Schema.Types.ObjectId;
   recepient: {
     name: string;
     address: string;
     city: string;
     postalCode: string;
-    company: string;
-    taxNumber: string;
     email: string;
     phoneNumber: string;
+  };
+  company: {
+    name: string;
+    address: string;
+    postalCode: string;
+    city: string;
+    taxNumber: string;
   };
   preInvoiceNumber: number;
   date: Date;
@@ -31,6 +37,10 @@ interface IPreInvoice {
 
 const preInvoiceSchema = new Schema<IPreInvoice>(
   {
+    buyer: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     recepient: {
       name: {
         type: String,
@@ -48,10 +58,15 @@ const preInvoiceSchema = new Schema<IPreInvoice>(
         type: String,
         required: [true, "Recepient must have a postal code"],
       },
-      company: String,
-      taxNumber: String,
       email: String,
       phoneNumber: String,
+    },
+    company: {
+      name: String,
+      address: String,
+      postalCode: String,
+      city: String,
+      taxNumber: String,
     },
     preInvoiceNumber: Number,
     date: {
@@ -146,23 +161,41 @@ preInvoiceSchema.pre("save", function (next) {
 
   this.reference = `SI00 ${Math.random()
     .toString()
-    .substring(2, 10)}-${new Date().getFullYear().toString().slice(2)}`;
+    .substring(2, 10)}${new Date().getFullYear().toString().slice(2)}`;
 
   next();
 });
 
 preInvoiceSchema.post("save", async function (doc, next) {
+  await doc.populate({
+    path: "buyer",
+    select: "email firstName lastName phoneNumber postalCode city address",
+  });
+  const buyer = doc.buyer as any;
+
   const mailOptions = {
-    email: doc.recepient.email,
+    email: doc.buyer ? buyer.email : doc.recepient.email,
     preInvoiceNumber: `${doc.preInvoiceNumber}-${new Date().getFullYear()}`,
     invoiceDate: doc.date,
-    companyName: doc.recepient.company,
+    companyName: doc.company.name,
     reference: doc.reference,
-    name: doc.recepient.name,
-    address: doc.recepient.address,
-    postalCode: doc.recepient.postalCode,
-    city: doc.recepient.city,
-    taxNumber: doc.recepient.taxNumber,
+    name: buyer ? `${buyer.firstName} ${buyer.lastName}` : doc.recepient.name,
+    address: doc.company.address
+      ? doc.company.address
+      : buyer
+      ? buyer.address
+      : doc.recepient.address,
+    postalCode: doc.company.postalCode
+      ? doc.company.postalCode
+      : buyer
+      ? buyer.postalCode
+      : doc.recepient.postalCode,
+    city: doc.company.city
+      ? doc.company.city
+      : buyer
+      ? buyer.city
+      : doc.recepient.city,
+    taxNumber: doc.company.taxNumber,
     paymentMethod: "nakazilo",
     dueDate: doc.dueDate,
     items: doc.items,

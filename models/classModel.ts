@@ -1,7 +1,10 @@
 import { Query, Schema, Types, model } from "mongoose";
 
 interface IClass {
-  className: string;
+  className: {
+    sl: string;
+    en: string;
+  };
   teacher: Schema.Types.ObjectId;
   hourlyRate: number;
   students: {
@@ -15,13 +18,18 @@ interface IClass {
   weekDay: number;
   time: number[];
   ageGroup: string;
+  article: Schema.Types.ObjectId;
 }
 
 const classSchema = new Schema<IClass>(
   {
     className: {
-      type: String,
-      required: true,
+      sl: {
+        type: String,
+      },
+      en: {
+        type: String,
+      },
     },
     teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
     hourlyRate: { type: Number, required: true },
@@ -38,6 +46,10 @@ const classSchema = new Schema<IClass>(
     weekDay: { type: Number },
     time: [Number],
     ageGroup: String,
+    article: {
+      type: Schema.Types.ObjectId,
+      ref: "Article",
+    },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );

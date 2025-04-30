@@ -1,6 +1,4 @@
-import { readFileSync } from "fs";
 import { createTransport, TransportOptions } from "nodemailer";
-import mjml2html from "mjml";
 import {
   generateInvoiceMail,
   generateInvoicePDFBuffer,
@@ -13,7 +11,6 @@ import {
   generateChildAuthMail,
   generateGiftCodeMail,
   generatePasswordResetMail,
-  generateVisitMail,
 } from "../templates/mailTemplates";
 
 export async function sendInvoice(options: any) {
@@ -93,7 +90,7 @@ export async function sendPreInvoice(options: any) {
     customer_name: options.name,
     customer_address: options.address,
     customer_postalCode: options.postalCode,
-    custumer_city: options.city,
+    customer_city: options.city,
     tax_number: options.taxNumber,
     total_with_tax: options.totalAmount,
     vat_amount: options.taxAmount,
@@ -150,29 +147,29 @@ export const sendReset = async function (options: any) {
   await transporter.sendMail(mailOptions);
 };
 
-export const sendVisit = async function (options: any) {
-  //1. Create transporter
-  const transporter = createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  } as TransportOptions);
+// export const sendVisit = async function (options: any) {
+//   //1. Create transporter
+//   const transporter = createTransport({
+//     host: process.env.EMAIL_HOST,
+//     port: process.env.EMAIL_PORT,
+//     auth: {
+//       user: process.env.EMAIL_USERNAME,
+//       pass: process.env.EMAIL_PASSWORD,
+//     },
+//   } as TransportOptions);
 
-  const html = generateVisitMail(options.firstName);
+//   const html = generateVisitMail(options.firstName);
 
-  //2. Define the email options
-  const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
-    subject: "Hvala za vaš obisk",
-    html,
-  };
-  //3. Actually send the email
-  await transporter.sendMail(mailOptions);
-};
+//   //2. Define the email options
+//   const mailOptions = {
+//     from: "Bolderaj <info@lamastrategies.com>",
+//     to: "niko.volaric@gmail.com",
+//     subject: "Hvala za vaš obisk",
+//     html,
+//   };
+//   //3. Actually send the email
+//   await transporter.sendMail(mailOptions);
+// };
 
 export const sendCode = async function (options: any) {
   //1. Create transporter

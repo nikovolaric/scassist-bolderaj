@@ -149,12 +149,22 @@ export const downloadInvoicePDF = catchAsync(async function (
     customer_name: buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
-    customer_address: buyer ? buyer.address : invoice.recepient.address,
-    customer_postalCode: buyer
+    customer_address: invoice.company.address
+      ? invoice.company.address
+      : buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    customer_postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : buyer
       ? buyer.postalCode
       : invoice.recepient.postalCode,
-    custumer_city: buyer ? buyer.city : invoice.recepient.city,
-    tax_number: buyer ? buyer.taxNumber : invoice.recepient.taxNumber,
+    custumer_city: invoice.company.city
+      ? invoice.company.city
+      : buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    tax_number: invoice.company.taxNumber,
     total_with_tax: invoice.totalAmount,
     vat_amount: invoice.totalAmount - invoice.totalTaxableAmount,
     payment_method: invoice.paymentMethod,
@@ -205,12 +215,22 @@ export const downloadInvoices = catchAsync(async function (
         customer_name: buyer
           ? `${buyer.firstName} ${buyer.lastName}`
           : invoice.recepient.name,
-        customer_address: buyer ? buyer.address : invoice.recepient.address,
-        customer_postalCode: buyer
+        customer_address: invoice.company.address
+          ? invoice.company.address
+          : buyer
+          ? buyer.address
+          : invoice.recepient.address,
+        customer_postalCode: invoice.company.postalCode
+          ? invoice.company.postalCode
+          : buyer
           ? buyer.postalCode
           : invoice.recepient.postalCode,
-        custumer_city: buyer ? buyer.city : invoice.recepient.city,
-        tax_number: buyer ? buyer.taxNumber : invoice.recepient.taxNumber,
+        custumer_city: invoice.company.city
+          ? invoice.company.city
+          : buyer
+          ? buyer.city
+          : invoice.recepient.city,
+        tax_number: invoice.company.taxNumber,
         total_with_tax: invoice.totalAmount,
         vat_amount: invoice.totalAmount - invoice.totalTaxableAmount,
         payment_method: invoice.paymentMethod,

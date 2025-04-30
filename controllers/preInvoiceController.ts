@@ -10,6 +10,7 @@ import {
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import { parse } from "csv-parse/sync";
+import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
 
 export const createPreInvoice = catchAsync(async function (
   req: Request,
@@ -244,4 +245,49 @@ export const getMyUnpaidPreInvoices = catchAsync(async function (
     results: preInvoices.length,
     preInvoices,
   });
+});
+
+export const downloadPreInvoice = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classId = req.params.classId;
+
+  const preInvoice = await PreInvoice.findOne({
+    classes: { $in: [classId] },
+    buyer: req.user._id,
+  });
+
+  if (!preInvoice) return next(new AppError("Preinvoice not found!", 404));
+
+  res.setHeader("Content-Disposition", 'attachment; filename="document.pdf"');
+  res.setHeader("Content-Type", "application/pdf");
+
+  const preInvoiceData = {
+    invoice_number: preInvoice.preInvoiceNumber,
+    invoice_date: preInvoice.date,
+    company_name: preInvoice.company.name,
+    reference_number: preInvoice.reference,
+    customer_name: preInvoice.recepient.name,
+    customer_address: preInvoice.company.address
+      ? preInvoice.company.address
+      : preInvoice.recepient.address,
+    customer_postalCode: preInvoice.company.postalCode
+      ? preInvoice.company.postalCode
+      : preInvoice.recepient.postalCode,
+    customer_city: preInvoice.company.city
+      ? preInvoice.company.city
+      : preInvoice.recepient.city,
+    tax_number: preInvoice.company.taxNumber,
+    total_with_tax: preInvoice.totalAmount,
+    vat_amount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
+    payment_method: "Po predračunu",
+    due_date: preInvoice.dueDate,
+    items: preInvoice.items,
+  };
+
+  const pdf = await generatePreInvoicePDFBuffer(preInvoiceData);
+
+  res.status(200).send(pdf);
 });

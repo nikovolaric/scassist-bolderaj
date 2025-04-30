@@ -1,5 +1,6 @@
 import mjml2html from "mjml";
 import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 
 export function generatePreInvoiceMail(invoiceData: any) {
   const itemsHtml = invoiceData.items
@@ -67,7 +68,7 @@ export function generatePreInvoiceMail(invoiceData: any) {
   <mj-body>
     <mj-section>
       <mj-column>
-        <mj-text align="center" font-size="20px" font-weight="bold">Račun</mj-text>
+        <mj-text align="center" font-size="20px" font-weight="bold">Predračun</mj-text>
         <mj-text align="center" padding="3px">Št. predračuna: ${
           invoiceData.invoice_number
         }</mj-text>
@@ -101,6 +102,11 @@ export function generatePreInvoiceMail(invoiceData: any) {
     <mj-section>
       <mj-column>
         <mj-text font-size="18px" font-weight="bold">Podatki o plačniku</mj-text>
+         ${
+           invoiceData.company_name
+             ? `<mj-text padding-top="3px" padding-bottom="3px">${invoiceData.company_name}</mj-text>`
+             : ""
+         }
         <mj-text padding-top="3px" padding-bottom="3px">${
           invoiceData.customer_name
         }</mj-text>
@@ -109,16 +115,12 @@ export function generatePreInvoiceMail(invoiceData: any) {
         }</mj-text>
         <mj-text padding-top="3px" padding-bottom="3px">${
           invoiceData.customer_postalCode
-        } ${invoiceData.custumer_city}</mj-text>
+        } ${invoiceData.customer_city}</mj-text>
         ${
-          invoiceData.company_name
-            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka: ${invoiceData.company_name}</mj-text>`
+          invoiceData.tax_number
+            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka/ID za DDV: ${invoiceData.tax_number}</mj-text>`
             : ""
-        } ${
-    invoiceData.tax_number
-      ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka: ${invoiceData.tax_number}</mj-text>`
-      : ""
-  }
+        }
       </mj-column>
     </mj-section>
 
@@ -192,9 +194,23 @@ export function generatePreInvoiceMail(invoiceData: any) {
 }
 
 export function generatePreInvoicePDFBuffer(invoiceData: any): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
     const buffers: Buffer[] = [];
+
+    const qrData = generateUPNQR(
+      invoiceData.customer_name,
+      invoiceData.customer_address,
+      invoiceData.customer_postalCode,
+      invoiceData.customer_city,
+      invoiceData.total_with_tax.toFixed(2),
+      invoiceData.reference_number
+    );
+
+    const qrCode = await QRCode.toDataURL(qrData, {
+      errorCorrectionLevel: "M",
+      version: 15,
+    });
 
     doc.registerFont("SourceSans3", "./fonts/SourceSans3-Regular.ttf");
     doc.registerFont("SourceSans3Bold", "./fonts/SourceSans3-Bold.ttf");
@@ -224,18 +240,22 @@ export function generatePreInvoicePDFBuffer(invoiceData: any): Promise<Buffer> {
       .text(invoiceData.customer_name, 50, 100)
       .text(invoiceData.customer_address, 50, 100 + 15)
       .text(
-        `${invoiceData.customer_postalCode} ${invoiceData.custumer_city}`,
+        `${invoiceData.customer_postalCode} ${invoiceData.customer_city}`,
         50,
         100 + 30
       )
       .moveDown();
 
     if (invoiceData.company_name) {
-      doc.text(`Podjetje: ${invoiceData.company_name}`, 50, 100 + 45);
+      doc.text(`${invoiceData.company_name}`, 50, 100 - 15);
     }
 
     if (invoiceData.tax_number) {
-      doc.text(`Davčna številka: ${invoiceData.tax_number}`, 50, 100 + 60);
+      doc.text(
+        `Davčna številka/ID za DDV: ${invoiceData.tax_number}`,
+        50,
+        100 + 45
+      );
     }
 
     doc.fillColor("#444444").fontSize(20).text("Predračun", 50, 180);
@@ -402,6 +422,11 @@ export function generatePreInvoicePDFBuffer(invoiceData: any): Promise<Buffer> {
         50,
         totalRow + 40
       )
+      .text("Slikaj in plačaj s QR kodo", 410, totalRow + 210)
+      .image(qrCode, 400, totalRow + 70, {
+        width: 136,
+        height: 136,
+      })
       .moveDown();
 
     doc.font("SourceSans3");
@@ -433,4 +458,37 @@ function generateTableRow(
     .text(c2, 280, y, { width: 90, align: "right" })
     .text(c3, 350, y, { width: 90, align: "right" })
     .text(c4, 0, y, { align: "right" });
+}
+
+function generateUPNQR(
+  recepient: string,
+  recepientAddress: string,
+  recepientPostal: string,
+  recepientCity: string,
+  amount: string,
+  reference: string
+) {
+  const qrStrNoCtrl = `UPNQR
+  
+  
+  
+  
+${recepient}
+${recepientAddress}
+${recepientPostal} ${recepientCity}
+${amount.replace(".", "").padStart(11, "0")}
+    
+    
+GDSV
+Plačilo predračuna ${reference}
+ 
+${process.env.BOLDERAJ_TRR}
+${reference.replace(" ", "")}
+Bolderaj d.o.o.
+${process.env.BOLDERAJ_ADDRESS}
+${process.env.BOLDERAJ_POSTAL}`;
+
+  const qrStrCtrl = `${qrStrNoCtrl}\n${qrStrNoCtrl.length + 1}`;
+
+  return `${qrStrCtrl}`;
 }

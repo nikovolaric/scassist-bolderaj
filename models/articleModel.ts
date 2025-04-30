@@ -1,7 +1,10 @@
 import { Schema, model } from "mongoose";
 
 interface IArticle {
-  name: string;
+  name: {
+    sl: string;
+    en: string;
+  };
   price: number;
   taxRate: number;
   priceDDV: number;
@@ -24,8 +27,14 @@ interface IArticle {
 const articleSchema = new Schema<IArticle>(
   {
     name: {
-      type: String,
-      required: [true, "Ticket item must have a name"],
+      sl: {
+        type: String,
+        required: [true, "Ticket item must have a name"],
+      },
+      en: {
+        type: String,
+        required: [true, "Ticket item must have a name"],
+      },
     },
     price: {
       type: Number,

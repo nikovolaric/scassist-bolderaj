@@ -10,7 +10,6 @@ import classRouter from "./routes/classRoutes";
 import preInvoiceRouter from "./routes/preInvoiceRoutes";
 import companyRouter from "./routes/companyRoutes";
 import articleRouter from "./routes/articleRoutes";
-import paymentRouter from "./routes/paymentRoutes";
 // import discountRouter from "./routes/discountRoutes";
 import globalErrorHandler from "./controllers/errorController";
 import AppError from "./utils/appError";
@@ -38,7 +37,6 @@ app.use("/api/v1/preinvoices", preInvoiceRouter);
 app.use("/api/v1/companies", companyRouter);
 app.use("/api/v1/articles", articleRouter);
 app.use("/api/v1/articles", articleRouter);
-app.use("/api/v1/payments", paymentRouter);
 // app.use("/api/v1/discounts", discountRouter);
 
 app.all("*", (req, res, next) => {
