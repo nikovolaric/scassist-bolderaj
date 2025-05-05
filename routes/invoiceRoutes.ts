@@ -4,6 +4,7 @@ import {
   createInvoice,
   downloadInvoicePDF,
   downloadInvoices,
+  downloadMyInvoice,
   getAllInvoices,
   getMyInvoices,
 } from "../controllers/invoiceContoller";
@@ -12,7 +13,8 @@ const router = Router();
 
 router.use(protect);
 
-router.get("/myinvoices", getMyInvoices);
+router.get("/myinvoices/:year", getMyInvoices);
+router.get("/myinvoices/download/:id", downloadMyInvoice);
 
 router.use(restrictTo(["admin"]));
 

@@ -11,6 +11,7 @@ import Article from "../models/articleModel";
 import User from "../models/userModel";
 import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 import archiver from "archiver";
+import APIFeatures from "../utils/apiFeatures";
 
 export const getAllInvoices = getAll(Invoice);
 export const createInvoice = catchAsync(async function (
@@ -109,16 +110,89 @@ export const getMyInvoices = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const invoices = await Invoice.find({ buyer: req.user.id }).populate({
-    path: "buyer",
-    select: "firstName lastName email address city country",
-  });
+  const year = req.params.year;
+
+  const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+  const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+
+  const invoices = await Invoice.find({
+    buyer: req.user.id,
+    invoiceDate: { $gte: startDate, $lte: endDate },
+  })
+    .populate({
+      path: "buyer",
+      select: "firstName lastName email address city country",
+    })
+    .sort({ invoiceDate: -1 });
 
   res.status(200).json({
     status: "success",
     results: invoices.length,
     invoices,
   });
+});
+
+export const downloadMyInvoice = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const id = req.params.id;
+
+  const invoice = await Invoice.findOne({
+    _id: id,
+    buyer: req.user._id,
+  }).populate({
+    path: "buyer issuer",
+    select: "-__v -birthdate",
+  });
+
+  if (!invoice) return next(new AppError("Invoice not found!", 404));
+
+  res.setHeader("Content-Disposition", 'attachment; filename="document.pdf"');
+  res.setHeader("Content-Type", "application/pdf");
+
+  const buyer = invoice.buyer as any;
+  const issuer = invoice.issuer as any;
+
+  const invoiceData = {
+    invoice_number: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    invoice_date: invoice.invoiceDate,
+    completed_date: invoice.invoiceDate,
+    company_name: buyer ? buyer.companyName : "",
+    issuer: issuer ? issuer.invoiceNickname : "Default",
+    reference_number: invoice.reference,
+    customer_name: buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : invoice.recepient.name,
+    customer_address: invoice.company.address
+      ? invoice.company.address
+      : buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    customer_postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : buyer
+      ? buyer.postalCode
+      : invoice.recepient.postalCode,
+    custumer_city: invoice.company.city
+      ? invoice.company.city
+      : buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    tax_number: invoice.company.taxNumber,
+    total_with_tax: invoice.totalAmount,
+    vat_amount: invoice.totalAmount - invoice.totalTaxableAmount,
+    payment_method: invoice.paymentMethod,
+    due_date: invoice.paymentDueDate,
+    items: invoice.soldItems,
+    ZOI: invoice.ZOI,
+    EOR: invoice.EOR,
+  };
+
+  const pdf = await generateInvoicePDFBuffer(invoiceData);
+
+  res.status(200).send(pdf);
 });
 
 export const downloadInvoicePDF = catchAsync(async function (

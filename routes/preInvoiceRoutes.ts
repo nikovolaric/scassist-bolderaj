@@ -4,7 +4,8 @@ import {
   checkPayedPreInvoices,
   createInvoiceFromPreInvoice,
   createPreInvoice,
-  downloadPreInvoice,
+  downloadMyPreInvoice,
+  downloadPreInvoiceFromClass,
   getMyUnpaidPreInvoices,
 } from "../controllers/preInvoiceController";
 import multer from "multer";
@@ -14,7 +15,8 @@ const router = Router();
 router.use(protect);
 
 router.get("/myunpaid", getMyUnpaidPreInvoices);
-router.get("/download/:classId", downloadPreInvoice);
+router.get("/download/class/:classId", downloadPreInvoiceFromClass);
+router.get("/download/:id", downloadMyPreInvoice);
 
 router.use(restrictTo(["admin"]));
 

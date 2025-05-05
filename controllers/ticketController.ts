@@ -192,7 +192,7 @@ export const getMyValidTickets = catchAsync(async function (
 ) {
   const user = await User.findById(req.user.id).populate({
     path: "unusedTickets",
-    select: "-__v -createdAt -user -used",
+    select: "-__v -createdAt -user",
   });
 
   if (!user) return next(new AppError("User not found", 404));
