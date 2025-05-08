@@ -17,7 +17,7 @@ export const getMe = catchAsync(async function (
 ) {
   const me = await User.findById(req.user.id);
 
-  if (!me) return next(new AppError("Please log in", 401));
+  if (!me) return next(new AppError("Please log in.", 401));
 
   if (me.usedTickets.length > 0 || me.unusedTickets.length > 0) {
     await me.populate({
@@ -33,6 +33,19 @@ export const getMe = catchAsync(async function (
       select: "-user -__v",
       strictPopulate: false,
     });
+  }
+
+  if (me.age >= 18 && me.parent) {
+    const parent = await User.findById(me.parent);
+    if (!parent) return next(new AppError("Parent does not exist.", 401));
+
+    me.parent = undefined;
+    me.parentContact = undefined;
+
+    parent.parentOf = parent.parentOf.filter((child) => child.child !== me._id);
+
+    await me.save({ validateBeforeSave: false });
+    await parent.save({ validateBeforeSave: false });
   }
 
   res.status(200).json({

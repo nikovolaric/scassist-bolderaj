@@ -18,6 +18,7 @@ interface IUser {
   password: string;
   passwordConfirm: string | undefined;
   role: string[];
+  age: number;
   canInvoice: Boolean;
   taxNo: string;
   invoiceNickname: string;
@@ -32,6 +33,7 @@ interface IUser {
     agreesToTerms: boolean;
     signedAt: Date;
   }[];
+  parent: Types.ObjectId | undefined;
   parentContact: { phoneNumber: string; email: string } | undefined;
   childActivationCode: { code: string; signedAt: Date } | undefined;
   createdAt: Date;
@@ -175,6 +177,10 @@ const userSchema = new Schema<IUser>(
     parentContact: {
       phoneNumber: String,
       email: String,
+    },
+    parent: {
+      type: Schema.Types.ObjectId,
+      res: "User",
     },
     childAuthToken: String,
     childAuthTokenExpires: Date,

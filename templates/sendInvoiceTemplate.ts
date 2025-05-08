@@ -112,13 +112,10 @@ export function generateInvoiceMail(invoiceData: any) {
     <mj-section>
       <mj-column>
         <mj-text font-size="18px" font-weight="bold">Podatki o plačniku</mj-text>
-        ${
-          invoiceData.company_name
-            ? `<mj-text padding-top="3px" padding-bottom="3px">${invoiceData.company_name}</mj-text>`
-            : ""
-        }
         <mj-text padding-top="3px" padding-bottom="3px">${
-          invoiceData.customer_name
+          invoiceData.company_name
+            ? invoiceData.company_name
+            : invoiceData.customer_name
         }</mj-text>
         <mj-text padding-top="3px" padding-bottom="3px">${
           invoiceData.customer_address
@@ -128,7 +125,7 @@ export function generateInvoiceMail(invoiceData: any) {
         } ${invoiceData.custumer_city}</mj-text>
         ${
           invoiceData.tax_number
-            ? `<mj-text padding-top="3px" padding-bottom="3px">Davčna številka/ID za DDV: ${invoiceData.tax_number}</mj-text>`
+            ? `<mj-text padding-top="3px" padding-bottom="3px">ID za DDV: ${invoiceData.tax_number}</mj-text>`
             : ""
         }
       </mj-column>
@@ -284,7 +281,13 @@ export async function generateInvoicePDFBuffer(
 
     doc
       .font("SourceSans3Bold")
-      .text(invoiceData.customer_name, 50, 100)
+      .text(
+        invoiceData.company_name
+          ? invoiceData.company_name
+          : invoiceData.customer_name,
+        50,
+        100
+      )
       .text(invoiceData.customer_address, 50, 100 + 15)
       .text(
         `${invoiceData.customer_postalCode} ${invoiceData.custumer_city}`,
@@ -293,16 +296,8 @@ export async function generateInvoicePDFBuffer(
       )
       .moveDown();
 
-    if (invoiceData.company_name) {
-      doc.text(`${invoiceData.company_name}`, 50, 100 - 15);
-    }
-
     if (invoiceData.tax_number) {
-      doc.text(
-        `Davčna številka/ID za DDV: ${invoiceData.tax_number}`,
-        50,
-        100 + 45
-      );
+      doc.text(`ID za DDV: ${invoiceData.tax_number}`, 50, 100 + 45);
     }
 
     doc.fillColor("#444444").fontSize(20).text("Račun", 50, 180);

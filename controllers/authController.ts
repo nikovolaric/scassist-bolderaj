@@ -62,15 +62,15 @@ export const signup = catchAsync(async function (
     age--;
   }
 
-  if (age < 15)
+  if (age < 18)
     return next(
       new AppError(
-        "You must be at least 15 years old to register without a parent!",
+        "You must be at least 18 years old to register without a parent!",
         403
       )
     );
 
-  if (age > 15 && (!req.body.email || !req.body.password))
+  if (age >= 18 && (!req.body.email || !req.body.password))
     return next(new AppError("Please provide email and password", 400));
 
   const newUser = await User.create({
@@ -111,7 +111,7 @@ export const createChild = catchAsync(async function (
     user.parentOf.filter((el) => el.child.firstName === req.body.firstName)
       .length > 0
   )
-    return next(new AppError("Otrok že obstaja.", 404));
+    return next(new AppError("Child already exists.", 404));
 
   const today = new Date();
   const birthDate = new Date(req.body.birthDate);
@@ -126,7 +126,7 @@ export const createChild = catchAsync(async function (
     age--;
   }
 
-  if (age >= 15)
+  if (age >= 18)
     return next(
       new AppError("You must register alone, with signup function!", 403)
     );
@@ -144,6 +144,7 @@ export const createChild = catchAsync(async function (
       email: user.email,
       phoneNumber: user.phoneNumber,
     },
+    parent: user._id,
     role: ["user"],
   });
 
@@ -180,6 +181,14 @@ export const sendChildAuthData = catchAsync(async function (
   if (!child) {
     return next(new AppError("User does not exist.", 404));
   }
+
+  if (child.age < 15)
+    return next(
+      new AppError(
+        "A child must be at least 15 years old to use this app alone!",
+        401
+      )
+    );
 
   const authToken = child?.createChildAuthToken();
   await child.save({ validateBeforeSave: false });
