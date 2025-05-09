@@ -56,8 +56,8 @@ export async function sendInvoice(options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: `Račun ${options.invoiceNumber}`,
     html,
     attachments: [
@@ -109,8 +109,8 @@ export async function sendPreInvoice(options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: `Predračun ${options.preInvoiceNumber}`,
     html,
     attachments: [
@@ -140,38 +140,14 @@ export const sendReset = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: "Obnovite geslo na spodnji povezavi",
     html,
   };
   //3. Actually send the email
   await transporter.sendMail(mailOptions);
 };
-
-// export const sendVisit = async function (options: any) {
-//   //1. Create transporter
-//   const transporter = createTransport({
-//     host: process.env.EMAIL_HOST,
-//     port: process.env.EMAIL_PORT,
-//     auth: {
-//       user: process.env.EMAIL_USERNAME,
-//       pass: process.env.EMAIL_PASSWORD,
-//     },
-//   } as TransportOptions);
-
-//   const html = generateVisitMail(options.firstName);
-
-//   //2. Define the email options
-//   const mailOptions = {
-//     from: "Bolderaj <info@lamastrategies.com>",
-//     to: "niko.volaric@gmail.com",
-//     subject: "Hvala za vaš obisk",
-//     html,
-//   };
-//   //3. Actually send the email
-//   await transporter.sendMail(mailOptions);
-// };
 
 export const sendCode = async function (options: any) {
   //1. Create transporter
@@ -188,8 +164,8 @@ export const sendCode = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Plezalni center Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: "Darilna koda",
     html,
   };
@@ -212,8 +188,8 @@ export const sendChildAuth = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: "Nastavite svoje vpisne podatke na spodnji povezavi",
     html,
   };
@@ -236,8 +212,8 @@ export const sendWelcomeConfirmMail = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: "Potrdite svoj elektronski naslov",
     html,
   };
@@ -245,7 +221,7 @@ export const sendWelcomeConfirmMail = async function (options: any) {
   await transporter.sendMail(mailOptions);
 };
 
-export const sendNewConfirmMail = async function (options: any) {
+export const sendAnotherConfirmMail = async function (options: any) {
   //1. Create transporter
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
@@ -260,8 +236,8 @@ export const sendNewConfirmMail = async function (options: any) {
 
   //2. Define the email options
   const mailOptions = {
-    from: "Bolderaj <info@lamastrategies.com>",
-    to: "niko.volaric@gmail.com",
+    from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
+    to: options.email,
     subject: "Potrdite svoj elektronski naslov",
     html,
   };
