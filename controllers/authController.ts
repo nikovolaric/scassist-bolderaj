@@ -3,7 +3,11 @@ import { sign, verify } from "jsonwebtoken";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import User from "../models/userModel";
-import { sendChildAuth, sendReset } from "../utils/email";
+import {
+  sendChildAuth,
+  sendWelcomeConfirmMail,
+  sendReset,
+} from "../utils/email";
 import { createHash } from "crypto";
 import { Types } from "mongoose";
 
@@ -91,7 +95,64 @@ export const signup = catchAsync(async function (
     role: ["user"],
   });
 
+  if (!newUser) return next(new AppError("Something went wrong!", 404));
+
+  const token = newUser.createConfirmMailToken();
+  await newUser.save({ validateBeforeSave: false });
+
+  await sendWelcomeConfirmMail({ email: req.body.email, token });
+
   createSendToken(newUser, 201, res);
+});
+
+export const sendNewConfirmMail = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.user.id);
+
+  if (!user) return next(new AppError("User not found.", 401));
+
+  const token = user.createConfirmMailToken();
+  await user.save({ validateBeforeSave: false });
+
+  await sendWelcomeConfirmMail({ email: req.body.email, token });
+
+  res.status(200).json({
+    status: "success",
+  });
+});
+
+export const confirmMail = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  //1. Get user based on the token
+  const hashedToken = createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    confirmMailToken: hashedToken,
+    confirmMailTokenExpires: { $gt: Date.now() },
+  });
+
+  //2. If token has not expired, and there is user, set new password
+  if (!user) {
+    return next(new AppError("Token is invalid or has expired", 400));
+  }
+
+  //3. Update confirmMail property for the user
+  user.confirmMailToken = undefined;
+  user.confirmMailTokenExpires = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: "success",
+  });
 });
 
 export const createChild = catchAsync(async function (

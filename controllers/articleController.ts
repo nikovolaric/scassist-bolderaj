@@ -1,18 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import Article from "../models/articleModel";
 import catchAsync from "../utils/catchAsync";
-import {
-  createOne,
-  deleteOne,
-  getAll,
-  getOne,
-  updateOne,
-} from "./handlerFactory";
+import { createOne, deleteOne, updateOne } from "./handlerFactory";
 import APIFeatures from "../utils/apiFeatures";
 import Class from "../models/classModel";
 import AppError from "../utils/appError";
 import User from "../models/userModel";
 import Invoice from "../models/invoiceModel";
+import Gift from "../models/giftModel";
 import { generateRandomString } from "../utils/helpers";
 import { ObjectId } from "mongoose";
 import Ticket from "../models/ticketModel";
@@ -44,41 +39,6 @@ export const getAllArticles = catchAsync(async function (
 
   const articles = await features.query;
 
-  // const articles = await Promise.all(
-  //   doc.map(async (el: any) => {
-  //     if (el.class.length>0) {
-  //       const currentClass = await Class.findById(el.class);
-
-  //       if (!currentClass) return next(new AppError("Class not found", 404));
-
-  //       const article = await Article.findById(el._id);
-
-  //       if (!article) return next(new AppError("Article not found", 404));
-
-  //       const newDates = currentClass.dates.filter(
-  //         (date: Date) => date > new Date()
-  //       );
-
-  //       if (newDates.length !== currentClass.dates.length) {
-  //         currentClass.dates = newDates;
-
-  //         article.price =
-  //           (article.price / currentClass.totalClasses) *
-  //           currentClass.dates.length;
-
-  //         await currentClass.save({ validateBeforeSave: false });
-  //         await article.save({ validateBeforeSave: false });
-
-  //         el.price = article.price;
-  //         el.priceDDV = article.priceDDV;
-  //         return el;
-  //       }
-  //     }
-
-  //     return el;
-  //   })
-  // );
-
   res.status(200).json({
     status: "success",
     results: articles.length,
@@ -104,6 +64,27 @@ export const getAllVisibleArticles = catchAsync(async function (
   res.status(200).json({
     status: "success",
     results: articles.length,
+    articles,
+  });
+});
+
+export const getAllGiftArticles = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const ageGroup = req.params.agegroup;
+
+  const articles = await Article.find({
+    gift: true,
+    ageGroup,
+    label: req.query.label,
+  }).sort({ type: 1 });
+
+  if (!articles) return next(new AppError("Article not found!", 404));
+
+  res.status(200).json({
+    status: "success",
     articles,
   });
 });
@@ -143,14 +124,13 @@ export const buyArticlesOnline = catchAsync(async function (
 
   const cart = await Promise.all(
     req.body.articles.map(
-      async (el: { articleId: string; quantity: number; gift: boolean }) => {
+      async (el: { articleId: string; quantity: number }) => {
         const article = await Article.findById(el.articleId);
         if (!article) return next(new AppError("Article not found!", 404));
 
         const articleToBuy = {
           article,
           quantity: el.quantity,
-          gift: el.gift,
         };
 
         return articleToBuy;
@@ -166,44 +146,27 @@ export const buyArticlesOnline = catchAsync(async function (
   for (const el of cart) {
     if (el.article.label === "V") {
       let tickets: ObjectId[] = [];
-      if (!el.gift) {
-        await Promise.all(
-          Array.from({ length: el.quantity }).map(async () => {
-            const data = {
-              name: el.article.name,
-              type: el.article.type,
-              duration: el.article.duration,
-              visits: el.article.visits,
-              morning: el.article.morning,
-              user: req.user.id,
-            };
-            const ticket = await Ticket.create(data);
 
-            if (!ticket)
-              return next(new AppError("Something went wrong!", 500));
+      await Promise.all(
+        Array.from({ length: el.quantity }).map(async () => {
+          const data = {
+            name: el.article.name,
+            type: el.article.type,
+            duration: el.article.duration,
+            visits: el.article.visits,
+            morning: el.article.morning,
+            user: req.user.id,
+          };
+          const ticket = await Ticket.create(data);
 
-            tickets = [...tickets, ticket.id];
-          })
-        );
+          if (!ticket) return next(new AppError("Something went wrong!", 500));
 
-        const unusedTickets = [...user.unusedTickets, ...tickets];
-        await User.findByIdAndUpdate(user.id, { unusedTickets: unusedTickets });
-      }
+          tickets = [...tickets, ticket.id];
+        })
+      );
 
-      if (el.gift) {
-        const data = {
-          name: el.article.name,
-          type: el.article.type,
-          duration: el.article.duration,
-          visits: el.article.visits,
-          giftCode: generateRandomString(10),
-        };
-        const ticket = await Ticket.create(data);
-
-        if (!ticket) return next(new AppError("Something went wrong!", 500));
-
-        await sendCode({ firstName: user.firstName, code: ticket.giftCode });
-      }
+      const unusedTickets = [...user.unusedTickets, ...tickets];
+      await User.findByIdAndUpdate(user.id, { unusedTickets: unusedTickets });
     }
   }
 
@@ -398,6 +361,132 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
   });
 });
 
+export const buyGiftOnline = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.user.id);
+
+  if (!user) return next(new AppError("User not found", 404));
+
+  // const paymentData = await checkPayment(res.locals.checkoutId);
+
+  // if (paymentData instanceof Error)
+  //   return next(new AppError("Something went wrong", 500));
+
+  const lastInvoice = await Invoice.findOne().sort({
+    "invoiceData.invoiceNo": -1,
+  });
+
+  const cart = await Promise.all(
+    req.body.articles.map(
+      async (el: { articleId: string; quantity: number }) => {
+        const article = await Article.findById(el.articleId);
+        if (!article) return next(new AppError("Article not found!", 404));
+
+        const articleToBuy = {
+          article,
+          quantity: el.quantity,
+        };
+
+        return articleToBuy;
+      }
+    )
+  );
+
+  for (const el of cart) {
+    if (el.article.label === "V") {
+      const data = {
+        name: el.article.name,
+        type: el.article.type,
+        duration: el.article.duration,
+        visits: el.article.visits,
+        giftCode: generateRandomString(8),
+      };
+      const ticket = await Ticket.create(data);
+
+      if (!ticket) return next(new AppError("Something went wrong!", 500));
+
+      await sendCode({ firstName: user.firstName, code: ticket.giftCode });
+    }
+
+    if (el.article.label === "A") {
+      const data = {
+        article: el.article.id,
+        giftCode: generateRandomString(8),
+      };
+      const gift = await Gift.create(data);
+
+      if (!gift) return next(new AppError("Something went wrong!", 500));
+
+      await sendCode({ firstName: user.firstName, code: gift.giftCode });
+    }
+  }
+
+  const taxes = cart.map((el) => {
+    const tax = {
+      taxRate: el.article.taxRate * 100,
+      taxableAmount: el.article.price * el.quantity,
+      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+    };
+    return tax;
+  });
+  const totalPrice = cart.reduce(
+    (c, el) => c + el.article.priceDDV * el.quantity,
+    0
+  );
+
+  const invoiceData = {
+    dateTime: new Date(),
+    issueDateTime: new Date(),
+    numberingStructure: "C",
+    businessPremiseID: "PC1",
+    electronicDeviceID: "BO",
+    invoiceNumber: lastInvoice
+      ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+      : 1,
+    invoiceAmount: totalPrice,
+    paymentAmount: totalPrice,
+    taxes,
+    operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+  };
+
+  const { JSONInvoice, ZOI } = generateJSONInvoice(invoiceData);
+
+  const EOR = await connectWithFURS(JSONInvoice);
+
+  const soldItems = cart.map((el) => {
+    const item = {
+      taxRate: el.article.taxRate,
+      taxableAmount: el.article.price.toFixed(2),
+      quantity: el.quantity,
+      item: `${el.article.name.sl} - darilni bon`,
+    };
+    return item;
+  });
+
+  const invoiceDataToSave = {
+    paymentDueDate: new Date(),
+    buyer: user.id,
+    company: req.body.company,
+    invoiceData: {
+      businessPremises: invoiceData.businessPremiseID,
+      deviceNo: invoiceData.electronicDeviceID,
+    },
+    soldItems,
+    paymentMethod: "online",
+    ZOI,
+    EOR,
+  };
+
+  await Invoice.create(invoiceDataToSave);
+
+  res.status(200).json({
+    status: "success",
+  });
+});
+
 export const buyArticlesInPerson = catchAsync(async function (
   req: Request,
   res: Response,
@@ -557,7 +646,7 @@ export const buyArticlesInPerson = catchAsync(async function (
       }
     }
 
-    if (el.article.label === "T") {
+    if (el.article.label === "A") {
       const currentClass = await Class.findById(el.article.class);
 
       if (!currentClass) return next(new AppError("Class not found", 404));

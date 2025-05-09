@@ -18,6 +18,7 @@ interface IArticle {
   noClasses: number;
   startDate: Date;
   endDate: Date;
+  gift: boolean;
   classPriceData: {
     price: number;
     priceDDV: number;
@@ -58,7 +59,7 @@ const articleSchema = new Schema<IArticle>(
     duration: Number,
     label: {
       type: String,
-      enum: ["V", "T", "I"],
+      enum: ["V", "A", "I"],
     },
     noClasses: Number,
     hidden: {
@@ -67,6 +68,7 @@ const articleSchema = new Schema<IArticle>(
     },
     startDate: Date,
     endDate: Date,
+    gift: Boolean,
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );

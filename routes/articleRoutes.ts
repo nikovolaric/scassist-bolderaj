@@ -3,9 +3,11 @@ import {
   buyArticlesInPerson,
   buyArticlesOnline,
   buyArticlesOnlineForChild,
+  buyGiftOnline,
   createArticle,
   deleteArticle,
   getAllArticles,
+  getAllGiftArticles,
   getAllVisibleArticles,
   getOneArticle,
   registerPremise,
@@ -19,10 +21,12 @@ const router = Router();
 router.use(protect);
 
 router.get("/getvisible", getAllVisibleArticles);
+router.get("/getgifts/:agegroup", getAllGiftArticles);
 router.post("/premise", registerPremise);
 
 router.post("/buyarticlesonline", buyArticlesOnline);
 router.post("/buyarticlesonline/:id", buyArticlesOnlineForChild);
+router.post("/buygiftonline", buyGiftOnline);
 
 router.get("/:id", getOneArticle);
 router.use(restrictTo(["admin", "employee"]));

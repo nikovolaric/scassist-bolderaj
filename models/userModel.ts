@@ -44,11 +44,14 @@ interface IUser {
   childAuthToken: string | undefined;
   childAuthTokenExpires: Date | undefined;
   active: Boolean;
+  confirmMailToken: string | undefined;
+  confirmMailTokenExpires: Date | undefined;
   correctPassword: Function;
   find: Function;
   changedPasswordAfter: Function;
   createPasswordResetToken: Function;
   createChildAuthToken: Function;
+  createConfirmMailToken: Function;
   populate: Function;
 }
 
@@ -68,7 +71,6 @@ const userSchema = new Schema<IUser>(
     },
     phoneNumber: {
       type: String,
-      validate: isMobilePhone,
     },
     email: {
       type: String,
@@ -184,6 +186,8 @@ const userSchema = new Schema<IUser>(
     },
     childAuthToken: String,
     childAuthTokenExpires: Date,
+    confirmMailToken: String,
+    confirmMailTokenExpires: Date,
     active: {
       type: Boolean,
       default: true,
@@ -259,11 +263,11 @@ userSchema.virtual("ageGroup").get(function () {
   }
 
   const ageGroup =
-    age <= 6
+    age <= 5
       ? "preschool"
-      : age > 6 && age <= 18
+      : age > 5 && age <= 14
       ? "school"
-      : age > 18 && age <= 26
+      : age > 14 && age <= 25
       ? "student"
       : "adult";
 
@@ -309,6 +313,17 @@ userSchema.methods.createChildAuthToken = function () {
   this.childAuthTokenExpires = Date.now() + 10 * 60 * 1000;
 
   return childAuthToken;
+};
+
+userSchema.methods.createConfirmMailToken = function () {
+  const confirmMailToken = randomBytes(32).toString("hex");
+
+  this.confirmMailToken = createHash("sha256")
+    .update(confirmMailToken)
+    .digest("hex");
+  this.confirmMailTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+  return confirmMailToken;
 };
 
 const User = model<IUser>("User", userSchema);

@@ -124,7 +124,17 @@ export const updateMe = catchAsync(
     }
 
     // 2) Filtered out unwanted fields names that are not allowed to be updated
-    const filteredBody = filterObj(req.body, "firstName", "lastName", "role");
+    const filteredBody = filterObj(
+      req.body,
+      "firstName",
+      "lastName",
+      "email",
+      "address",
+      "postalCode",
+      "city",
+      "country",
+      "phoneNumber"
+    );
 
     // 3) Update user document
     const updatedUser = await User.findByIdAndUpdate(
@@ -138,9 +148,7 @@ export const updateMe = catchAsync(
 
     res.status(200).json({
       status: "success",
-      data: {
-        user: updatedUser,
-      },
+      user: updatedUser,
     });
   }
 );

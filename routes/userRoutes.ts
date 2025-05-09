@@ -11,6 +11,7 @@ import {
   createMyChildLoginInfo,
 } from "../controllers/userController";
 import {
+  confirmMail,
   createChild,
   forgotPassword,
   login,
@@ -19,6 +20,7 @@ import {
   resetPassword,
   restrictTo,
   sendChildAuthData,
+  sendNewConfirmMail,
   setChildAuthData,
   signup,
   updatePassword,
@@ -31,6 +33,7 @@ router.post("/login", login);
 
 router.post("/forgotpassword", forgotPassword);
 router.patch("/resetpassword/:token", resetPassword);
+router.get("/confirmmail/:token", confirmMail);
 
 router.use(protect);
 
@@ -39,6 +42,7 @@ router.patch("/updatepassword", updatePassword);
 router.get("/getme", getMe);
 router.patch("/updateme", updateMe);
 router.delete("/deleteme", deleteMe);
+router.post("/sendnewconfrimmail", sendNewConfirmMail);
 router.get("/getmychildren", getMyChildren);
 router.get("/getmychildren/:id", getMyOneChild);
 router.post("/childlogininfo/:id", createMyChildLoginInfo);

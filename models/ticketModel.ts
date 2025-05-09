@@ -61,6 +61,7 @@ const ticketSchema = new Schema<ITicket>(
     },
     giftCode: {
       type: String,
+      unique: true,
     },
   },
   { timestamps: true }

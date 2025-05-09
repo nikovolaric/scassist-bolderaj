@@ -10,7 +10,9 @@ import {
 import {
   generateChildAuthMail,
   generateGiftCodeMail,
+  generateNewConfirmEmailMail,
   generatePasswordResetMail,
+  generateWelcomeConfirmEmailMail,
 } from "../templates/mailTemplates";
 
 export async function sendInvoice(options: any) {
@@ -213,6 +215,54 @@ export const sendChildAuth = async function (options: any) {
     from: "Bolderaj <info@lamastrategies.com>",
     to: "niko.volaric@gmail.com",
     subject: "Nastavite svoje vpisne podatke na spodnji povezavi",
+    html,
+  };
+  //3. Actually send the email
+  await transporter.sendMail(mailOptions);
+};
+
+export const sendWelcomeConfirmMail = async function (options: any) {
+  //1. Create transporter
+  const transporter = createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  } as TransportOptions);
+
+  const html = generateWelcomeConfirmEmailMail(options.token);
+
+  //2. Define the email options
+  const mailOptions = {
+    from: "Bolderaj <info@lamastrategies.com>",
+    to: "niko.volaric@gmail.com",
+    subject: "Potrdite svoj elektronski naslov",
+    html,
+  };
+  //3. Actually send the email
+  await transporter.sendMail(mailOptions);
+};
+
+export const sendNewConfirmMail = async function (options: any) {
+  //1. Create transporter
+  const transporter = createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  } as TransportOptions);
+
+  const html = generateNewConfirmEmailMail(options.token);
+
+  //2. Define the email options
+  const mailOptions = {
+    from: "Bolderaj <info@lamastrategies.com>",
+    to: "niko.volaric@gmail.com",
+    subject: "Potrdite svoj elektronski naslov",
     html,
   };
   //3. Actually send the email
