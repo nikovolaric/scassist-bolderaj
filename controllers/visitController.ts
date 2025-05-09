@@ -79,6 +79,7 @@ export const getYearlyVisitsNo = catchAsync(async function (
 
   const visits = await Visit.find({
     date: { $gte: startDate, $lte: endDate },
+    user: req.user._id,
   });
 
   res.status(200).json({
