@@ -408,7 +408,11 @@ export const buyGiftOnline = catchAsync(async function (
 
       if (!ticket) return next(new AppError("Something went wrong!", 500));
 
-      await sendCode({ firstName: user.firstName, code: ticket.giftCode });
+      await sendCode({
+        firstName: user.firstName,
+        code: ticket.giftCode,
+        email: req.user.email,
+      });
     }
 
     if (el.article.label === "A") {
@@ -420,7 +424,11 @@ export const buyGiftOnline = catchAsync(async function (
 
       if (!gift) return next(new AppError("Something went wrong!", 500));
 
-      await sendCode({ firstName: user.firstName, code: gift.giftCode });
+      await sendCode({
+        firstName: user.firstName,
+        code: gift.giftCode,
+        email: req.user.email,
+      });
     }
   }
 

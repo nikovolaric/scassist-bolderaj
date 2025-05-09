@@ -21,6 +21,7 @@ export async function sendInvoice(options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -78,6 +79,7 @@ export async function sendPreInvoice(options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -130,6 +132,7 @@ export const sendReset = async function (options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -154,6 +157,7 @@ export const sendCode = async function (options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -169,6 +173,7 @@ export const sendCode = async function (options: any) {
     subject: "Darilna koda",
     html,
   };
+
   //3. Actually send the email
   await transporter.sendMail(mailOptions);
 };
@@ -178,6 +183,7 @@ export const sendChildAuth = async function (options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -202,6 +208,7 @@ export const sendWelcomeConfirmMail = async function (options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -226,6 +233,7 @@ export const sendAnotherConfirmMail = async function (options: any) {
   const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
