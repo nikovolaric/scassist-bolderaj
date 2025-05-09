@@ -9,7 +9,7 @@ interface IArticle {
   taxRate: number;
   priceDDV: number;
   type: string;
-  ageGroup: string;
+  ageGroup: string[];
   visits: number;
   duration: number;
   label: string;
@@ -52,7 +52,7 @@ const articleSchema = new Schema<IArticle>(
     },
     morning: Boolean,
     ageGroup: {
-      type: String,
+      type: [String],
       enum: ["preschool", "school", "student", "adult"],
     },
     visits: Number,

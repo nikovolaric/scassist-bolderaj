@@ -11,7 +11,6 @@ import Article from "../models/articleModel";
 import User from "../models/userModel";
 import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 import archiver from "archiver";
-import APIFeatures from "../utils/apiFeatures";
 
 export const getAllInvoices = getAll(Invoice);
 export const createInvoice = catchAsync(async function (
