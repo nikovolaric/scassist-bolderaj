@@ -1,11 +1,11 @@
-import Discount from "../models/discountModel.js";
+import Discount from "../models/discountModel";
 import {
   createOne,
   deleteOne,
   getAll,
   getOne,
   updateOne,
-} from "./handlerFactory.js";
+} from "./handlerFactory";
 
 export const createDiscount = createOne(Discount);
 export const getAllDiscounts = getAll(Discount);

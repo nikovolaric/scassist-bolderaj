@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { parse } from "csv-parse/sync";
-import catchAsync from "../utils/catchAsync.js";
-import PreInvoice from "../models/preInvoiceModel.js";
-import Invoice from "../models/invoiceModel.js";
-import User from "../models/userModel.js";
-import Article from "../models/articleModel.js";
-import AppError from "../utils/appError.js";
+import catchAsync from "../utils/catchAsync";
+import PreInvoice from "../models/preInvoiceModel";
+import Invoice from "../models/invoiceModel";
+import User from "../models/userModel";
+import Article from "../models/articleModel";
+import AppError from "../utils/appError";
 import {
   connectWithFURS,
   generateJSONInvoice,
-} from "../utils/createJSONInvoice.js";
-import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate.js";
+} from "../utils/createJSONInvoice";
+import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
 
 export const createPreInvoice = catchAsync(async function (
   req: Request,

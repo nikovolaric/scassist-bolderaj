@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import archiver from "archiver";
-import Invoice from "../models/invoiceModel.js";
-import catchAsync from "../utils/catchAsync.js";
-import { createOne, getAll } from "./handlerFactory.js";
+import Invoice from "../models/invoiceModel";
+import catchAsync from "../utils/catchAsync";
+import { createOne, getAll } from "./handlerFactory";
 import {
   connectWithFURS,
   generateJSONInvoice,
-} from "../utils/createJSONInvoice.js";
-import AppError from "../utils/appError.js";
-import Article from "../models/articleModel.js";
-import User from "../models/userModel.js";
-import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate.js";
+} from "../utils/createJSONInvoice";
+import AppError from "../utils/appError";
+import Article from "../models/articleModel";
+import User from "../models/userModel";
+import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 
 export const getAllInvoices = getAll(Invoice);
 export const createInvoice = catchAsync(async function (

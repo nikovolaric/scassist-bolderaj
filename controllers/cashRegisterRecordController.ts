@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { sign, verify } from "jsonwebtoken";
-import catchAsync from "../utils/catchAsync.js";
-import AppError from "../utils/appError.js";
-import CashRegisterRecord from "../models/cashRegisterRecordModel.js";
-import { deleteOne, getAll, getOne, updateOne } from "./handlerFactory.js";
+import catchAsync from "../utils/catchAsync";
+import AppError from "../utils/appError";
+import CashRegisterRecord from "../models/cashRegisterRecordModel";
+import { deleteOne, getAll, getOne, updateOne } from "./handlerFactory";
 
 export const getAllCashRegisterRecords = getAll(CashRegisterRecord);
 export const getOneCashRegisterRecord = getOne(CashRegisterRecord, {

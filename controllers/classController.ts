@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
-import Class from "../models/classModel.js";
-import catchAsync from "../utils/catchAsync.js";
-import { deleteOne, getAll, updateOne } from "./handlerFactory.js";
-import AppError from "../utils/appError.js";
-import User from "../models/userModel.js";
-import Invoice from "../models/invoiceModel.js";
-import Article from "../models/articleModel.js";
-import PreInvoice from "../models/preInvoiceModel.js";
+import Class from "../models/classModel";
+import catchAsync from "../utils/catchAsync";
+import { deleteOne, getAll, updateOne } from "./handlerFactory";
+import AppError from "../utils/appError";
+import User from "../models/userModel";
+import Invoice from "../models/invoiceModel";
+import Article from "../models/articleModel";
+import PreInvoice from "../models/preInvoiceModel";
 import {
   connectWithFURS,
   generateJSONInvoice,
-} from "../utils/createJSONInvoice.js";
+} from "../utils/createJSONInvoice";
 
 export const getAllClasses = getAll(Class);
 export const updateClass = updateOne(Class);

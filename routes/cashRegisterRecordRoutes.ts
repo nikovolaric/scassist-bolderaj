@@ -1,9 +1,5 @@
 import { Router } from "express";
-import {
-  protect,
-  protectIP,
-  restrictTo,
-} from "../controllers/authController.js";
+import { protect, protectIP, restrictTo } from "../controllers/authController";
 import {
   deleteCashRegisterRecord,
   endCashRegisterRecord,
@@ -11,7 +7,7 @@ import {
   getOneCashRegisterRecord,
   startCashRegisterRecord,
   updateCashRegisterRecord,
-} from "../controllers/cashRegisterRecordController.js";
+} from "../controllers/cashRegisterRecordController";
 
 const router = Router();
 

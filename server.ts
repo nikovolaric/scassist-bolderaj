@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import app from "./app.js";
+import app from "./app";
 
 process.on("uncaughtException", (err) => {
   console.log(err.name, err.message);

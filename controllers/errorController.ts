@@ -1,5 +1,5 @@
 import { NextFunction, Response, Request } from "express";
-import AppError from "../utils/appError.js";
+import AppError from "../utils/appError";
 
 interface iErr {
   path: string;

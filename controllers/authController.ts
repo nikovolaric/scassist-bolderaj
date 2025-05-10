@@ -2,15 +2,15 @@ import { NextFunction, Request, Response } from "express";
 import { sign, verify } from "jsonwebtoken";
 import { createHash } from "crypto";
 import { Types } from "mongoose";
-import catchAsync from "../utils/catchAsync.js";
-import AppError from "../utils/appError.js";
-import User from "../models/userModel.js";
+import catchAsync from "../utils/catchAsync";
+import AppError from "../utils/appError";
+import User from "../models/userModel";
 import {
   sendChildAuth,
   sendWelcomeConfirmMail,
   sendReset,
   sendAnotherConfirmMail,
-} from "../utils/email.js";
+} from "../utils/email";
 
 const signToken = function (id: string) {
   const secret: any = process.env.JWT_SECRET;

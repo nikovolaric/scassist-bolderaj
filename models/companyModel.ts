@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { model, Query, Schema } from "mongoose";
 
 interface ICompany {

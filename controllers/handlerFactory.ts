@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import AppError from "../utils/appError.js";
-import catchAsync from "../utils/catchAsync.js";
-import APIFeatures from "../utils/apiFeatures.js";
+import AppError from "../utils/appError";
+import catchAsync from "../utils/catchAsync";
+import APIFeatures from "../utils/apiFeatures";
 
 export const deleteOne = (model: any) =>
   catchAsync(async function (req: Request, res: Response, next: NextFunction) {

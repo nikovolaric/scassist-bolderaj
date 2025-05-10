@@ -1,5 +1,5 @@
 import { model, Schema, Types } from "mongoose";
-import { sendPreInvoice } from "../utils/email.js";
+import { sendPreInvoice } from "../utils/email";
 
 interface IPreInvoice {
   buyer: Schema.Types.ObjectId;

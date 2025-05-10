@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { sendInvoice } from "../utils/email.js";
+import { sendInvoice } from "../utils/email";
 
 interface IInvoice {
   buyer: Schema.Types.ObjectId;

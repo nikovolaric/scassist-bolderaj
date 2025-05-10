@@ -2,18 +2,18 @@ import { createTransport, TransportOptions } from "nodemailer";
 import {
   generateInvoiceMail,
   generateInvoicePDFBuffer,
-} from "../templates/sendInvoiceTemplate.js";
+} from "../templates/sendInvoiceTemplate";
 import {
   generatePreInvoiceMail,
   generatePreInvoicePDFBuffer,
-} from "../templates/sendPreInvoiceTemplate.js";
+} from "../templates/sendPreInvoiceTemplate";
 import {
   generateChildAuthMail,
   generateGiftCodeMail,
   generateNewConfirmEmailMail,
   generatePasswordResetMail,
   generateWelcomeConfirmEmailMail,
-} from "../templates/mailTemplates.js";
+} from "../templates/mailTemplates";
 
 export async function sendInvoice(options: any) {
   //1. Create transporter

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect, restrictTo } from "../controllers/authController.js";
+import { protect, restrictTo } from "../controllers/authController";
 import {
   checkPayedPreInvoices,
   createInvoiceFromPreInvoice,
@@ -7,7 +7,7 @@ import {
   downloadMyPreInvoice,
   downloadPreInvoiceFromClass,
   getMyUnpaidPreInvoices,
-} from "../controllers/preInvoiceController.js";
+} from "../controllers/preInvoiceController";
 import multer from "multer";
 
 const router = Router();

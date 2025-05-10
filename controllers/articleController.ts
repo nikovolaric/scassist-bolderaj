@@ -1,24 +1,24 @@
 import { NextFunction, Request, Response } from "express";
 import { ObjectId } from "mongoose";
-import Article from "../models/articleModel.js";
-import catchAsync from "../utils/catchAsync.js";
-import { createOne, deleteOne, updateOne } from "./handlerFactory.js";
-import APIFeatures from "../utils/apiFeatures.js";
-import Class from "../models/classModel.js";
-import AppError from "../utils/appError.js";
-import User from "../models/userModel.js";
-import Invoice from "../models/invoiceModel.js";
-import Gift from "../models/giftModel.js";
-import { generateRandomString } from "../utils/helpers.js";
-import Ticket from "../models/ticketModel.js";
-import { sendCode } from "../utils/email.js";
+import Article from "../models/articleModel";
+import catchAsync from "../utils/catchAsync";
+import { createOne, deleteOne, updateOne } from "./handlerFactory";
+import APIFeatures from "../utils/apiFeatures";
+import Class from "../models/classModel";
+import AppError from "../utils/appError";
+import User from "../models/userModel";
+import Invoice from "../models/invoiceModel";
+import Gift from "../models/giftModel";
+import { generateRandomString } from "../utils/helpers";
+import Ticket from "../models/ticketModel";
+import { sendCode } from "../utils/email";
 import {
   bussinesPremises,
   connectWithFURS,
   generateJSONInvoice,
-} from "../utils/createJSONInvoice.js";
-import Visit from "../models/visitModel.js";
-import { checkPayment } from "./paymentController.js";
+} from "../utils/createJSONInvoice";
+import Visit from "../models/visitModel";
+import { checkPayment } from "./paymentController";
 
 export const createArticle = createOne(Article);
 export const updateArticle = updateOne(Article);

@@ -12,9 +12,9 @@ import {
   getOneArticle,
   registerPremise,
   updateArticle,
-} from "../controllers/articleController.js";
-import { protect, restrictTo } from "../controllers/authController.js";
-import { pay } from "../controllers/paymentController.js";
+} from "../controllers/articleController";
+import { protect, restrictTo } from "../controllers/authController";
+import { pay } from "../controllers/paymentController";
 
 const router = Router();
 

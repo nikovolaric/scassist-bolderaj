@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import Visit from "../models/visitModel.js";
-import catchAsync from "../utils/catchAsync.js";
-import { getAll } from "./handlerFactory.js";
-import APIFeatures from "../utils/apiFeatures.js";
-import AppError from "../utils/appError.js";
+import Visit from "../models/visitModel";
+import catchAsync from "../utils/catchAsync";
+import { getAll } from "./handlerFactory";
+import APIFeatures from "../utils/apiFeatures";
+import AppError from "../utils/appError";
 
 export const getAllVisits = getAll(Visit);
 

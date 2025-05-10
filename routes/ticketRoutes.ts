@@ -8,8 +8,8 @@ import {
   getOneTicket,
   useCuponTicket,
   useTicket,
-} from "../controllers/ticketController.js";
-import { protect, restrictTo } from "../controllers/authController.js";
+} from "../controllers/ticketController";
+import { protect, restrictTo } from "../controllers/authController";
 
 const router = Router();
 
