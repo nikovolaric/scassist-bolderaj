@@ -4,8 +4,8 @@ import {
   getMyChildVisits,
   getMyVisits,
   getYearlyVisitsNo,
-} from "../controllers/visitController";
-import { protect, restrictTo } from "../controllers/authController";
+} from "../controllers/visitController.js";
+import { protect, restrictTo } from "../controllers/authController.js";
 
 const router = Router();
 

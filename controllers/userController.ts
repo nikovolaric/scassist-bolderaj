@@ -1,9 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import User from "../models/userModel";
-import { getAll, getOne } from "./handlerFactory";
-import catchAsync from "../utils/catchAsync";
-import AppError from "../utils/appError";
-import { generateRandomString } from "../utils/helpers";
+import User from "../models/userModel.js";
+import { getAll, getOne } from "./handlerFactory.js";
+import catchAsync from "../utils/catchAsync.js";
+import AppError from "../utils/appError.js";
 
 export const getUser = getOne(User, {
   select: "-__v -role -passwordChangedAt",

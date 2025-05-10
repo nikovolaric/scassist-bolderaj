@@ -9,7 +9,7 @@ import {
   getMyChildren,
   getMyOneChild,
   createMyChildLoginInfo,
-} from "../controllers/userController";
+} from "../controllers/userController.js";
 import {
   confirmMail,
   createChild,
@@ -24,7 +24,7 @@ import {
   setChildAuthData,
   signup,
   updatePassword,
-} from "../controllers/authController";
+} from "../controllers/authController.js";
 
 const router = Router();
 

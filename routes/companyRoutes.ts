@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { protect, restrictTo } from "../controllers/authController";
+import { protect, restrictTo } from "../controllers/authController.js";
 import {
   createCompany,
   getAllCompanies,
   getCompany,
-} from "../controllers/companyControllers";
+} from "../controllers/companyController.js";
 
 const router = Router();
 

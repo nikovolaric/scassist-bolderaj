@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import Company from "../models/companyModel";
-import catchAsync from "../utils/catchAsync";
-import { createOne, getAll, getOne } from "./handlerFactory";
-import AppError from "../utils/appError";
+import Company from "../models/companyModel.js";
+import catchAsync from "../utils/catchAsync.js";
+import { createOne, getAll, getOne } from "./handlerFactory.js";
+import AppError from "../utils/appError.js";
 
 export const getAllCompanies = getAll(Company);
 export const getCompany = getOne(Company);

@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "my-express-app",
   "main": "app.ts",
+  "type": "module",
   "scripts": {
     "build": "npx tsc",
-    "start": "node-ts server.ts",
+    "start": "node server.ts",
     "dev": "nodemon server.ts"
   },
   "author": "Niko Volarić",

@@ -1,15 +1,15 @@
 import { NextFunction, Request, Response } from "express";
-import catchAsync from "../utils/catchAsync";
-import Ticket from "../models/ticketModel";
-import User from "../models/userModel";
 import { ObjectId } from "mongoose";
-import { generateRandomString } from "../utils/helpers";
-import Invoice from "../models/invoiceModel";
-import AppError from "../utils/appError";
-import { createOne, getAll, getOne } from "./handlerFactory";
-import Visit from "../models/visitModel";
-import Article from "../models/articleModel";
-import Company from "../models/companyModel";
+import catchAsync from "../utils/catchAsync.js";
+import Ticket from "../models/ticketModel.js";
+import User from "../models/userModel.js";
+import { generateRandomString } from "../utils/helpers.js";
+import Invoice from "../models/invoiceModel.js";
+import AppError from "../utils/appError.js";
+import { createOne, getAll, getOne } from "./handlerFactory.js";
+import Visit from "../models/visitModel.js";
+import Article from "../models/articleModel.js";
+import Company from "../models/companyModel.js";
 
 export const getOneTicket = getOne(Ticket, {
   path: "user",

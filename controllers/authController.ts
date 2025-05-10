@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { sign, verify } from "jsonwebtoken";
-import catchAsync from "../utils/catchAsync";
-import AppError from "../utils/appError";
-import User from "../models/userModel";
+import { createHash } from "crypto";
+import { Types } from "mongoose";
+import catchAsync from "../utils/catchAsync.js";
+import AppError from "../utils/appError.js";
+import User from "../models/userModel.js";
 import {
   sendChildAuth,
   sendWelcomeConfirmMail,
   sendReset,
   sendAnotherConfirmMail,
-} from "../utils/email";
-import { createHash } from "crypto";
-import { Types } from "mongoose";
+} from "../utils/email.js";
 
 const signToken = function (id: string) {
   const secret: any = process.env.JWT_SECRET;
@@ -498,7 +498,7 @@ export const protectIP = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const response = await fetch("https://ipinfo.io/json");
+  const response: any = await fetch("https://ipinfo.io/json");
   const { ip } = await response.json();
 
   if (ip !== process.env.COMPUTER_IP)

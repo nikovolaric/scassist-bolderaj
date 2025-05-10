@@ -1,7 +1,7 @@
 import { model, Schema, Types } from "mongoose";
 import { isMobilePhone } from "validator";
 import bcrypt from "bcryptjs";
-import isEmail from "validator/lib/isEmail";
+import { isEmail } from "validator";
 import { createHash, randomBytes } from "crypto";
 
 interface IUser {

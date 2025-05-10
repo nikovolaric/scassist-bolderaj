@@ -1,18 +1,18 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import userRouter from "./routes/userRoutes";
-import ticketRouter from "./routes/ticketRoutes";
-import visitRouter from "./routes/visitRoutes";
-import invoiceRouter from "./routes/invoiceRoutes";
-import cashRegisterRecordRouter from "./routes/cashRegisterRecordRoutes";
-import classRouter from "./routes/classRoutes";
-import preInvoiceRouter from "./routes/preInvoiceRoutes";
-import companyRouter from "./routes/companyRoutes";
-import articleRouter from "./routes/articleRoutes";
-// import discountRouter from "./routes/discountRoutes";
-import globalErrorHandler from "./controllers/errorController";
-import AppError from "./utils/appError";
+import userRouter from "./routes/userRoutes.js";
+import ticketRouter from "./routes/ticketRoutes.js";
+import visitRouter from "./routes/visitRoutes.js";
+import invoiceRouter from "./routes/invoiceRoutes.js";
+import cashRegisterRecordRouter from "./routes/cashRegisterRecordRoutes.js";
+import classRouter from "./routes/classRoutes.js";
+import preInvoiceRouter from "./routes/preInvoiceRoutes.js";
+import companyRouter from "./routes/companyRoutes.js";
+import articleRouter from "./routes/articleRoutes.js";
+// import discountRouter from "./routes/discountRoutes.js";
+import globalErrorHandler from "./controllers/errorController.js";
+import AppError from "./utils/appError.js";
 
 const app = express();
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect, restrictTo } from "../controllers/authController";
+import { protect, restrictTo } from "../controllers/authController.js";
 import {
   checkAttendance,
   createClass,
@@ -13,7 +13,7 @@ import {
   signUpChildForClassOnline,
   signUpForClassOnline,
   updateClass,
-} from "../controllers/classController";
+} from "../controllers/classController.js";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect, restrictTo } from "../controllers/authController";
+import { protect, restrictTo } from "../controllers/authController.js";
 import {
   createInvoice,
   downloadInvoicePDF,
@@ -7,7 +7,7 @@ import {
   downloadMyInvoice,
   getAllInvoices,
   getMyInvoices,
-} from "../controllers/invoiceContoller";
+} from "../controllers/invoiceContoller.js";
 
 const router = Router();
 

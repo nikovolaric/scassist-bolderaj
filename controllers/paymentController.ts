@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import catchAsync from "../utils/catchAsync";
-import AppError from "../utils/appError";
+import catchAsync from "../utils/catchAsync.js";
+import AppError from "../utils/appError.js";
 
 export const pay = catchAsync(async function (
   req: Request,
@@ -13,7 +13,7 @@ export const pay = catchAsync(async function (
   if (!amount || !card)
     return next(new AppError("Please provide all data!", 400));
 
-  const checkoutData = await createCheckoutsession(amount);
+  const checkoutData: any = await createCheckoutsession(amount);
 
   if (checkoutData instanceof Error)
     return next(new AppError("Plačilo ni bilo uspešno", 500));
@@ -105,7 +105,7 @@ export const checkPayment = async function (checkoutId: string) {
       }
     );
 
-    const paymentData = await paymentRes.json();
+    const paymentData: any = await paymentRes.json();
     console.log(paymentData);
     console.log(paymentData.result.parameterErrors);
 

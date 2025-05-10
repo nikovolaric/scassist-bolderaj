@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { protect, restrictTo } from "../controllers/authController";
+import { protect, restrictTo } from "../controllers/authController.js";
 import {
   createDiscount,
   deleteDiscount,
   getAllDiscounts,
   getOneDiscount,
   updateDiscount,
-} from "../controllers/discountController";
+} from "../controllers/discountController.js";
 
 const router = Router();
 
