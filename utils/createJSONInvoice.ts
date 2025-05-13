@@ -277,8 +277,8 @@ export async function connectWithFURS(data: any) {
   const caCerts = [
     readFileSync("./certs/si-trust-root.pem"),
     readFileSync("./certs/sigov-ca2.xcert.pem"),
+    readFileSync("./certs/blagajne-test.fu.gov.si.pem"),
   ];
-  const fursCert = readFileSync("./certs/blagajne-test.fu.gov.si.pem");
   const appCert = readFileSync("./certs/DavPotRacTEST.cer");
   const myCert = readFileSync("./certs/10622799-1.p12");
 
