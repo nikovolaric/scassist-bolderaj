@@ -44,10 +44,13 @@ cashRegisterRecordSchema.pre("save", function (next) {
   )
     return next();
 
-  this.cashBalanceDifference = this.endCashBalance - this.startCashBalance;
+  this.cashBalanceDifference = parseFloat(
+    (this.endCashBalance - this.startCashBalance).toFixed(2)
+  );
 
-  this.creditCardBalanceDifference =
-    this.endCreditCardBalance - this.startCreditCardBalance;
+  this.creditCardBalanceDifference = parseFloat(
+    (this.endCreditCardBalance - this.startCreditCardBalance).toFixed(2)
+  );
 
   next();
 });

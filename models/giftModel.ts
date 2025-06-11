@@ -3,6 +3,8 @@ import { model, Schema, Types } from "mongoose";
 interface IGift {
   article: Types.ObjectId;
   giftCode: string;
+  label: string;
+  used: boolean;
   expires: Date;
 }
 
@@ -11,12 +13,15 @@ const giftSchema = new Schema<IGift>(
     article: {
       type: Schema.Types.ObjectId,
       ref: "Article",
+      required: true,
     },
     giftCode: {
       type: String,
-      require: true,
+      required: true,
       unique: true,
     },
+    label: { type: String, required: true },
+    used: Boolean,
     expires: {
       type: Date,
       default: Date.now() + 365 * 24 * 60 * 60 * 1000,

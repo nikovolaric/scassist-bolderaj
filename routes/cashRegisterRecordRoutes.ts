@@ -4,7 +4,9 @@ import {
   deleteCashRegisterRecord,
   endCashRegisterRecord,
   getAllCashRegisterRecords,
+  getCashRegisterRecord,
   getOneCashRegisterRecord,
+  protectCR,
   startCashRegisterRecord,
   updateCashRegisterRecord,
 } from "../controllers/cashRegisterRecordController";
@@ -14,8 +16,9 @@ const router = Router();
 router.use(protect);
 router.use(restrictTo(["admin", "employee"]));
 
-router.post("/start", protectIP, startCashRegisterRecord);
-router.post("/end", protectIP, endCashRegisterRecord);
+router.post("/start", startCashRegisterRecord);
+router.get("/get", protectCR, getCashRegisterRecord);
+router.post("/end", protectCR, endCashRegisterRecord);
 
 router.use(restrictTo(["admin"]));
 

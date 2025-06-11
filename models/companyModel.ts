@@ -62,7 +62,7 @@ const companySchema = new Schema<ICompany>(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );
 
 companySchema.pre("save", function (next) {
@@ -77,11 +77,15 @@ companySchema.pre(/^find/, function (next) {
   if (this instanceof Query) {
     this.populate({
       path: "users",
-      select: "firstName lastName email",
+      select: "firstName lastName email birthDate",
     });
   }
 
   next();
+});
+
+companySchema.virtual("companySeat").get(function () {
+  return `${this.companyAddress}, ${this.companyPostalCode} ${this.companyCity}`;
 });
 
 const Company = model<ICompany>("Company", companySchema);

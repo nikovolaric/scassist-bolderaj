@@ -8,6 +8,7 @@ interface IUser {
   id: string;
   firstName: string;
   lastName: string;
+  fullName: string;
   birthDate: Date;
   phoneNumber: string;
   email: string;
@@ -19,18 +20,19 @@ interface IUser {
   passwordConfirm: string | undefined;
   role: string[];
   age: number;
+  ageGroup: string[];
   canInvoice: Boolean;
   taxNo: string;
   invoiceNickname: string;
   company: Schema.Types.ObjectId | undefined;
   unusedTickets: Schema.Types.ObjectId[];
-  usedTickets: Schema.Types.ObjectId[];
-  visits: Schema.Types.ObjectId[];
   agreesToTerms: Boolean;
+  infoIsTrue: Boolean;
   signedForNewsletter: Boolean;
   parentOf: {
     child: Types.ObjectId;
     agreesToTerms: boolean;
+    infoIsTrue: boolean;
     signedAt: Date;
   }[];
   parent: Types.ObjectId | undefined;
@@ -80,19 +82,15 @@ const userSchema = new Schema<IUser>(
     },
     address: {
       type: String,
-      required: [true, "User must have an address"],
     },
     city: {
       type: String,
-      required: [true, "User must have a city"],
     },
     postalCode: {
       type: String,
-      required: [true, "User must have a postal code"],
     },
     country: {
       type: String,
-      required: [true, "User must have a country"],
     },
     password: {
       type: String,
@@ -135,25 +133,17 @@ const userSchema = new Schema<IUser>(
         ref: "Ticket",
       },
     ],
-    usedTickets: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Ticket",
-      },
-    ],
-    visits: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Visit",
-      },
-    ],
     agreesToTerms: {
+      type: Boolean,
+      default: false,
+    },
+    infoIsTrue: {
       type: Boolean,
       default: false,
     },
     signedForNewsletter: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     createdAt: {
       type: Date,
@@ -173,6 +163,7 @@ const userSchema = new Schema<IUser>(
           ref: "User",
         },
         agreesToTerms: Boolean,
+        infoIsTrue: Boolean,
         signedAt: Date,
       },
     ],
@@ -264,14 +255,20 @@ userSchema.virtual("ageGroup").get(function () {
 
   const ageGroup =
     age <= 5
-      ? "preschool"
+      ? ["preschool", "school", "student", "adult"]
       : age > 5 && age <= 14
-      ? "school"
+      ? ["school", "student", "adult"]
       : age > 14 && age <= 25
-      ? "student"
-      : "adult";
+      ? ["student", "adult"]
+      : ["adult"];
 
   return ageGroup;
+});
+
+userSchema.virtual("fullName").get(function () {
+  const fullName = `${this.firstName} ${this.lastName}`;
+
+  return fullName;
 });
 
 userSchema.methods.correctPassword = async function (

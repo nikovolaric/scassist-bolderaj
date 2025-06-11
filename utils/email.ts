@@ -38,7 +38,7 @@ export async function sendInvoice(options: any) {
     customer_name: options.name,
     customer_address: options.address,
     customer_postalCode: options.postalCode,
-    custumer_city: options.city,
+    customer_city: options.city,
     tax_number: options.taxNumber,
     total_with_tax: options.totalAmount,
     vat_amount: options.totalTaxAmount,
@@ -170,8 +170,13 @@ export const sendCode = async function (options: any) {
   const mailOptions = {
     from: `Bolderaj <${process.env.EMAIL_USERNAME}>`,
     to: options.email,
-    subject: "Darilna koda",
+    subject: "Darilni bon",
     html,
+    attachment: {
+      filename: "Darilni bon - Bolderaj",
+      path: "../templates/assets/darilni-bon.png",
+      contentType: "image/png",
+    },
   };
 
   //3. Actually send the email

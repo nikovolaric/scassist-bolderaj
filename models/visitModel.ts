@@ -10,7 +10,7 @@ const visitSchema = new Schema<IVisit>(
   {
     date: {
       type: Date,
-      default: Date.now(),
+      default: () => new Date(),
       required: [true, "Visit must have a date"],
     },
     user: {

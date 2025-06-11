@@ -17,8 +17,9 @@ interface IClass {
   totalClasses: number;
   weekDay: number;
   time: number[];
-  ageGroup: string;
-  article: Schema.Types.ObjectId;
+  ageGroup: string[];
+  article: Schema.Types.ObjectId[];
+  hidden: boolean;
 }
 
 const classSchema = new Schema<IClass>(
@@ -45,10 +46,16 @@ const classSchema = new Schema<IClass>(
     totalClasses: Number,
     weekDay: { type: Number },
     time: [Number],
-    ageGroup: String,
-    article: {
-      type: Schema.Types.ObjectId,
-      ref: "Article",
+    ageGroup: [String],
+    article: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Article",
+      },
+    ],
+    hidden: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }

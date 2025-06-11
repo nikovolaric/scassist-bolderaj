@@ -3,6 +3,7 @@ import {
   getAllVisits,
   getMyChildVisits,
   getMyVisits,
+  getUserVisits,
   getYearlyVisitsNo,
 } from "../controllers/visitController";
 import { protect, restrictTo } from "../controllers/authController";
@@ -15,6 +16,11 @@ router.get("/myvisits", getMyVisits);
 router.get("/childvisits/:id", getMyChildVisits);
 
 router.get("/yearly/:year", getYearlyVisitsNo);
+
+router.use(restrictTo(["admin", "employee"]));
+
+router.get("/user/:id", getUserVisits);
+
 router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllVisits);

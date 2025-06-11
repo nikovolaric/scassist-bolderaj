@@ -8,32 +8,34 @@ import {
   deleteArticle,
   getAllArticles,
   getAllGiftArticles,
-  getAllVisibleArticles,
+  getAllVisibleArticlesUsers,
+  getAllVisibleArticlesReception,
   getOneArticle,
   registerPremise,
   updateArticle,
 } from "../controllers/articleController";
 import { protect, restrictTo } from "../controllers/authController";
-import { pay } from "../controllers/paymentController";
+import { checkPayment } from "../controllers/paymentController";
 
 const router = Router();
 
 router.use(protect);
 
-router.get("/getvisible", getAllVisibleArticles);
+router.get("/getvisibleusers", getAllVisibleArticlesUsers);
 router.get("/getgifts/:agegroup", getAllGiftArticles);
-router.post("/premise", registerPremise);
 
-router.post("/buyarticlesonline", buyArticlesOnline);
-router.post("/buyarticlesonline/:id", buyArticlesOnlineForChild);
-router.post("/buygiftonline", buyGiftOnline);
+router.post("/buyarticlesonline", checkPayment, buyArticlesOnline);
+router.post("/buyarticlesonline/:id", checkPayment, buyArticlesOnlineForChild);
+router.post("/buygiftonline", checkPayment, buyGiftOnline);
 
 router.get("/:id", getOneArticle);
 router.use(restrictTo(["admin", "employee"]));
 
 router.post("/sellinperson/:id", buyArticlesInPerson);
+router.get("/getvisiblereception", getAllVisibleArticlesReception);
 
 router.use(restrictTo(["admin"]));
+router.post("/premise", registerPremise);
 router.route("/").get(getAllArticles).post(createArticle);
 router.route("/:id").patch(updateArticle).delete(deleteArticle);
 

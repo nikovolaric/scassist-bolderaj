@@ -87,3 +87,20 @@ export const getYearlyVisitsNo = catchAsync(async function (
     results: visits.length,
   });
 });
+
+export const getUserVisits = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const visits = await Visit.find({ user: req.params.id })
+    .populate({ path: "ticket", select: "name" })
+    .sort({ date: -1 })
+    .limit(10);
+
+  res.status(200).json({
+    status: "success",
+    results: visits.length,
+    visits,
+  });
+});

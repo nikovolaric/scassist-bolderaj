@@ -22,7 +22,6 @@ class APIFeatures {
 
     if (queryObj.lastName) {
       const flexibleRegex = this.generateFlexibleRegex(queryObj.lastName);
-      console.log(flexibleRegex);
       queryObj.lastName = { $regex: flexibleRegex, $options: "i" };
     }
 

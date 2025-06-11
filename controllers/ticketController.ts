@@ -3,10 +3,8 @@ import { ObjectId } from "mongoose";
 import catchAsync from "../utils/catchAsync";
 import Ticket from "../models/ticketModel";
 import User from "../models/userModel";
-import { generateRandomString } from "../utils/helpers";
-import Invoice from "../models/invoiceModel";
 import AppError from "../utils/appError";
-import { createOne, getAll, getOne } from "./handlerFactory";
+import { getAll, getOne } from "./handlerFactory";
 import Visit from "../models/visitModel";
 import Article from "../models/articleModel";
 import Company from "../models/companyModel";
@@ -55,8 +53,6 @@ export const useTicket = catchAsync(async function (
     user.unusedTickets = user.unusedTickets.filter((t) => {
       return t.toString() !== ticket.id.toString();
     });
-
-    user.usedTickets = [...user.usedTickets, ticket.id];
   }
 
   if (ticket.type === "terminska" && ticket.validUntil < new Date())
@@ -72,8 +68,6 @@ export const useTicket = catchAsync(async function (
       user.unusedTickets = user.unusedTickets.filter((t) => {
         return t.toString() !== ticket.id.toString();
       });
-
-      user.usedTickets = [...user.usedTickets, ticket.id];
     }
   }
 
@@ -91,12 +85,8 @@ export const useTicket = catchAsync(async function (
       user.unusedTickets = user.unusedTickets.filter((t) => {
         return t.toString() !== ticket.id.toString();
       });
-
-      user.usedTickets = [...user.usedTickets, ticket.id];
     }
   }
-
-  user.visits = [...user.visits, visit.id];
 
   await ticket.save({ validateBeforeSave: false });
   await user.save({ validateBeforeSave: false });
@@ -104,84 +94,6 @@ export const useTicket = catchAsync(async function (
   res.status(200).json({
     status: "success",
     visit,
-  });
-});
-
-export const useCuponTicket = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const ticket = await Ticket.findOne({ giftCode: req.body.giftCode });
-
-  if (!ticket) return next(new AppError("Ticket not found", 404));
-
-  const user = await User.findById(req.params.id);
-
-  if (!user) return next(new AppError("User not found", 404));
-
-  const newVisitData = {
-    date: new Date(),
-    user: user.id,
-    ticket: ticket.id,
-  };
-
-  const visit = await Visit.create(newVisitData);
-
-  if (ticket.type === "dnevna") {
-    ticket.used = true;
-    ticket.usedOn = new Date();
-    ticket.validUntil = new Date();
-
-    user.unusedTickets = user.unusedTickets.filter((t) => {
-      return t.toString() !== ticket.id.toString();
-    });
-
-    user.usedTickets = [...user.usedTickets, ticket.id];
-  }
-
-  if (ticket.type === "terminska" && ticket.validUntil < new Date())
-    return next(new AppError("This ticket is used", 400));
-
-  if (ticket.type === "terminska") {
-    ticket.validUntil = new Date(
-      Date.now() + ticket.duration * 24 * 60 * 60 * 1000
-    );
-    ticket.used = true;
-
-    if (ticket.validUntil < new Date()) {
-      user.unusedTickets = user.unusedTickets.filter((t) => {
-        return t.toString() !== ticket.id.toString();
-      });
-
-      user.usedTickets = [...user.usedTickets, ticket.id];
-    }
-  }
-
-  if (ticket.type === "paket" && !ticket.visitsLeft)
-    return next(new AppError("This ticket is used", 400));
-
-  if (ticket.type === "paket") {
-    ticket.validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    ticket.visitsLeft = ticket.visitsLeft - 1;
-    ticket.used = true;
-    if (ticket.visitsLeft === 0) {
-      user.unusedTickets = user.unusedTickets.filter((t) => {
-        return t.toString() !== ticket.id.toString();
-      });
-
-      user.usedTickets = [...user.usedTickets, ticket.id];
-    }
-  }
-
-  user.visits = [...user.visits, visit.id];
-
-  await ticket.save({ validateBeforeSave: false });
-  await user.save({ validateBeforeSave: false });
-
-  res.status(200).json({
-    status: "success",
-    user,
   });
 });
 
@@ -235,25 +147,6 @@ export const getChildValidTickets = catchAsync(async function (
   });
 });
 
-export const getMyUsedTickets = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const user = await User.findById(req.user.id).populate({
-    path: "usedTickets",
-    select: "type usedOn",
-  });
-
-  if (!user) return next(new AppError("User not found", 404));
-
-  res.status(200).json({
-    status: "success",
-    results: user.usedTickets.length,
-    usedTickets: user.usedTickets,
-  });
-});
-
 export const createTicketsForCompany = catchAsync(async function (
   req: Request,
   res: Response,
@@ -274,6 +167,7 @@ export const createTicketsForCompany = catchAsync(async function (
       const data = {
         type: article.type,
         company: company.id,
+        name: article.name,
       };
 
       const ticket = await Ticket.create(data);

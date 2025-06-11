@@ -9,6 +9,11 @@ import {
   getMyChildren,
   getMyOneChild,
   createMyChildLoginInfo,
+  getUserTickets,
+  getUserClasses,
+  getUserActivities,
+  getUserCompanies,
+  getUserChildren,
 } from "../controllers/userController";
 import {
   confirmMail,
@@ -54,6 +59,11 @@ router.use(restrictTo(["admin", "employee"]));
 
 router.get("/", getAllUsers);
 router.route("/:id").get(getUser);
+router.get("/:id/tickets", getUserTickets);
+router.get("/:id/classes", getUserClasses);
+router.get("/:id/classessingle", getUserActivities);
+router.get("/:id/companies", getUserCompanies);
+router.get("/:id/children", getUserChildren);
 
 router.use(restrictTo(["admin"]));
 router.post("/updaterole/:id", updateUsersRole);

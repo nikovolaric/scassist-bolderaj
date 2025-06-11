@@ -51,8 +51,13 @@ export const signup = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  if (!req.body.agreesToTerms)
-    return next(new AppError("You must agree to terms and conditions", 400));
+  if (!req.body.agreesToTerms || !req.body.infoIsTrue)
+    return next(
+      new AppError(
+        "You must provide valid information and agree to our terms!",
+        400
+      )
+    );
 
   const today = new Date();
   const birthDate = new Date(req.body.birthDate);
@@ -87,6 +92,7 @@ export const signup = catchAsync(async function (
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     agreesToTerms: req.body.agreesToTerms,
+    infoIsTrue: req.body.infoIsTrue,
     signedForNewsletter: req.body.signedForNewsletter,
     address: req.body.address,
     city: req.body.city,
@@ -103,7 +109,10 @@ export const signup = catchAsync(async function (
 
   await sendWelcomeConfirmMail({ email: req.body.email, token });
 
-  createSendToken(newUser, 201, res);
+  res.status(201).json({
+    status: "success",
+    user: newUser,
+  });
 });
 
 export const sendNewConfirmMail = catchAsync(async function (
@@ -168,6 +177,14 @@ export const createChild = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
+  if (!req.body.agreesToTerms || !req.body.infoIsTrue)
+    return next(
+      new AppError(
+        "You must provide valid information and agree to our terms!",
+        400
+      )
+    );
+
   if (
     //@ts-ignore
     user.parentOf.filter((el) => el.child.firstName === req.body.firstName)
@@ -215,6 +232,7 @@ export const createChild = catchAsync(async function (
     {
       child: child._id as Types.ObjectId,
       agreesToTerms: req.body.agreesToTerms as boolean,
+      infoIsTrue: req.body.infoIsTrue as boolean,
       signedAt: new Date(),
     },
   ];

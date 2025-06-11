@@ -15,7 +15,7 @@ export const deleteCashRegisterRecord = deleteOne(CashRegisterRecord);
 
 const signToken = function (id: string) {
   return sign({ id }, process.env.JWT_SECRET_CASHREGISTER!, {
-    expiresIn: Number(process.env.JWT_EXPIRES_IN) * 24 * 60 * 60,
+    expiresIn: 24 * 60 * 60 * 1000,
   });
 };
 
@@ -26,10 +26,7 @@ const createSendToken = function (
 ) {
   const token = signToken(cashRegisterRecord._id);
   const cookieOptions = {
-    expires: new Date(
-      Date.now() +
-        Number(process.env.JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
-    ),
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     httpOnly: true,
   };
 
@@ -71,14 +68,27 @@ export const startCashRegisterRecord = catchAsync(async function (
   createSendToken(cashRegisterRecord, 201, res);
 });
 
+export const getCashRegisterRecord = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const cashRegisterRecord = req.cashRegister;
+
+  if (!cashRegisterRecord) return next(new AppError("CR does not exist", 404));
+
+  res.status(200).json({
+    status: "success",
+    cashRegisterRecord,
+  });
+});
+
 export const endCashRegisterRecord = catchAsync(async function (
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const cashRegisterRecordJWT = req.headers.cookie
-    ?.split(";")[0]
-    .split("=")[1] as string;
+  const cashRegisterRecordJWT = req.cookies.cashRegister;
 
   const decoded: any = verify(
     cashRegisterRecordJWT,
@@ -101,12 +111,44 @@ export const endCashRegisterRecord = catchAsync(async function (
 
   await cashRegisterRecord.save({ validateBeforeSave: false });
 
-  res.cookie("cashRegister", {
-    expires: new Date(Date.now() + 1),
-  });
+  res.clearCookie("cashRegister");
 
   res.status(200).json({
     status: "success",
     cashRegisterRecord,
   });
+});
+
+export const protectCR = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const token = req.cookies.cashRegister;
+
+  if (!token) {
+    return next(
+      new AppError(
+        "You are not logged in to cashregister. Please log in to get access!",
+        401
+      )
+    );
+  }
+  const secret: any = process.env.JWT_SECRET_CASHREGISTER;
+
+  const decoded: any = verify(token, secret);
+
+  const currentCR = await CashRegisterRecord.findById(decoded.id);
+
+  if (!currentCR) {
+    res.cookie("cashRegister", "", {
+      expires: new Date(Date.now() + 1000),
+      httpOnly: true,
+    });
+    return next(new AppError("The user no longer exists", 401));
+  }
+
+  req.cashRegister = currentCR;
+
+  next();
 });

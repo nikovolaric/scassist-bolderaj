@@ -336,3 +336,132 @@ export const downloadMyPreInvoice = catchAsync(async function (
 
   res.status(200).send(pdf);
 });
+
+export const getUserUnpaidPreinvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const preInvoices = await PreInvoice.find({
+    user: req.params.id,
+    payed: { $ne: true },
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: preInvoices.length,
+    preInvoices,
+  });
+});
+
+export const downloadPreInvoiceReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const preInvoice = await PreInvoice.findById(req.params.id);
+
+  if (!preInvoice) return next(new AppError("Preinvoice not found!", 404));
+
+  res.setHeader("Content-Disposition", 'attachment; filename="document.pdf"');
+  res.setHeader("Content-Type", "application/pdf");
+
+  const preInvoiceData = {
+    invoice_number: preInvoice.preInvoiceNumber,
+    invoice_date: preInvoice.date,
+    company_name: preInvoice.company.name,
+    reference_number: preInvoice.reference,
+    customer_name: preInvoice.recepient.name,
+    customer_address: preInvoice.company.address
+      ? preInvoice.company.address
+      : preInvoice.recepient.address,
+    customer_postalCode: preInvoice.company.postalCode
+      ? preInvoice.company.postalCode
+      : preInvoice.recepient.postalCode,
+    customer_city: preInvoice.company.city
+      ? preInvoice.company.city
+      : preInvoice.recepient.city,
+    tax_number: preInvoice.company.taxNumber,
+    total_with_tax: preInvoice.totalAmount,
+    vat_amount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
+    payment_method: "Po predračunu",
+    due_date: preInvoice.dueDate,
+    items: preInvoice.items,
+  };
+
+  const pdf = await generatePreInvoicePDFBuffer(preInvoiceData);
+
+  res.status(200).send(pdf);
+});
+
+export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const preInvoice = await PreInvoice.findById(req.params.id);
+
+  if (!preInvoice) {
+    return next(new AppError("PreInvoice not found", 404));
+  }
+
+  const lastInvoice = await Invoice.findOne().sort({
+    "invoiceData.invoiceNo": -1,
+  });
+
+  const { recepient, dueDate, reference, items, totalAmount } = preInvoice;
+
+  const taxes = items.map((el) => {
+    const tax = {
+      taxRate: el.taxRate * 100,
+      taxableAmount: el.taxableAmount * el.quantity,
+      taxAmount: el.taxableAmount * el.taxRate * el.quantity,
+    };
+    return tax;
+  });
+
+  const invoiceData = {
+    dateTime: new Date(),
+    issueDateTime: new Date(),
+    numberingStructure: "C",
+    businessPremiseID: "PC1",
+    electronicDeviceID: "B1",
+    invoiceNumber: lastInvoice
+      ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+      : 1,
+    invoiceAmount: totalAmount,
+    paymentAmount: totalAmount,
+    taxes,
+    operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+  };
+
+  const { JSONInvoice, ZOI } = generateJSONInvoice(invoiceData);
+
+  const EOR = await connectWithFURS(JSONInvoice);
+
+  const newInvoiceData = {
+    paymentDueDate: req.body.dueDate || dueDate,
+    recepient,
+    reference,
+    invoiceData: {
+      businessPremises: invoiceData.businessPremiseID,
+      deviceNo: invoiceData.electronicDeviceID,
+    },
+    soldItems: items,
+    paymentMethod: req.body.paymentMethod,
+    issuer: req.user.id,
+    ZOI,
+    EOR,
+  };
+
+  const invoice = await Invoice.create(newInvoiceData);
+
+  preInvoice.payed = true;
+
+  await preInvoice.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: "success",
+    invoice,
+  });
+});

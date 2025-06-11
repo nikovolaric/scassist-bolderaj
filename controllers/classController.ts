@@ -21,11 +21,17 @@ export const getMultipleDateClasses = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const { className, ...query } = req.query;
+
   const classes = await Class.find({
     $expr: {
       $gt: [{ $size: "$dates" }, 1],
     },
-    ...req.query,
+    hidden: { $ne: true },
+    ...query,
+    ...(className && {
+      "className.sl": { $regex: className, $options: "i" },
+    }),
   }).sort({ dates: 1 });
 
   res.status(200).json({
@@ -41,12 +47,36 @@ export const getSingleDateClasses = catchAsync(async function (
 ) {
   const allClasses = await Class.find({
     dates: { $size: 1 },
+    hidden: { $ne: true },
     ...req.query,
   }).sort({
     dates: 1,
   });
 
-  const classes = allClasses.filter((el) => el.dates[0] > new Date());
+  const classes = allClasses.filter(
+    (el) =>
+      new Date(el.dates[0]).toLocaleDateString("sl-SI") >=
+      new Date().toLocaleDateString("sl-SI")
+  );
+
+  res.status(200).json({
+    status: "success",
+    classes,
+  });
+});
+
+export const getSingleDateClassesReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classes = await Class.find({
+    dates: { $size: 1 },
+    hidden: { $ne: true },
+    ...req.query,
+  }).sort({
+    dates: 1,
+  });
 
   res.status(200).json({
     status: "success",
@@ -82,14 +112,15 @@ export const getOneClass = catchAsync(async function (
   const currentUser = req.user;
 
   const currentClass = await Class.findById(req.params.id).populate({
-    path: "teacher students",
-    select: "firstName lastName email dateOfBirth",
+    path: "teacher students.student",
+    select: "firstName lastName email birthDate",
   });
 
   if (!currentClass) return next(new AppError("Class not found", 404));
 
   if (
-    currentClass.teacher.toString() !== currentUser.id ||
+    currentClass.teacher.toString() !== currentUser.id &&
+    !req.user.role.includes("employee") &&
     !req.user.role.includes("admin")
   )
     return next(new AppError("You are not the teacher of this class", 401));
@@ -127,9 +158,9 @@ export const signUpForClassOnline = catchAsync(async function (
       return next(new AppError("Class is full", 400));
 
     if (
-      currentClass.students.map(
-        (student) => student.student === currentUser._id
-      ).length > 0
+      currentClass.students.find(
+        (student) => student.student.toString() === currentUser._id.toString()
+      )
     )
       return next(
         new AppError("You are already signed up for this class", 400)
@@ -426,18 +457,45 @@ export const checkAttendance = catchAsync(async function (
   )
     return next(new AppError("You are not the teacher of this class", 401));
 
-  if (
-    !currentClass.dates
-      .map((date) => date.toString())
-      .includes(new Date(req.body.date).toString())
-  )
-    return next(new AppError("Date not found", 404));
+  // if (
+  //   !currentClass.dates
+  //     .map((date) => date.toString())
+  //     .includes(new Date(req.body.date).toString())
+  // )
+  //   return next(new AppError("Date not found", 404));
 
-  currentClass.students.map((student) => {
-    if (student.student.toString() === req.body.studentId) {
-      student.attendance = [...student.attendance, req.body.date];
+  // for (const el of req.body.students) {
+  //   for (const student of currentClass.students) {
+  //     if (student.student.toString() === el.id) {
+  //       student.attendance = [...student.attendance, ...el.dates];
+  //     }
+  //   }
+  // }
+
+  for (const el of req.body.students) {
+    for (const student of currentClass.students) {
+      if (student.student.toString() === el.id) {
+        const existingDates = student.attendance.map((d) =>
+          d instanceof Date ? d.toISOString() : d
+        );
+
+        const updatedDatesSet = new Set(existingDates);
+
+        for (const date of el.dates) {
+          const isoDate = new Date(date).toISOString();
+          if (updatedDatesSet.has(isoDate)) {
+            updatedDatesSet.delete(isoDate);
+          } else {
+            updatedDatesSet.add(isoDate);
+          }
+        }
+
+        student.attendance = Array.from(updatedDatesSet).map(
+          (d) => new Date(d)
+        );
+      }
     }
-  });
+  }
 
   await currentClass.save({ validateBeforeSave: false });
 

@@ -18,7 +18,6 @@ import {
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import Visit from "../models/visitModel";
-import { checkPayment } from "./paymentController";
 
 export const createArticle = createOne(Article);
 export const updateArticle = updateOne(Article);
@@ -46,14 +45,50 @@ export const getAllArticles = catchAsync(async function (
   });
 });
 
-export const getAllVisibleArticles = catchAsync(async function (
+export const getAllVisibleArticlesUsers = catchAsync(async function (
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  let filter = { hidden: { $ne: true } };
+  let filter = { hiddenUsers: { $ne: true } };
 
-  const features = new APIFeatures(Article.find(filter), req.query)
+  const { name, ...query } = req.query;
+
+  const features = new APIFeatures(Article.find(filter), {
+    ...query,
+    ...(name && {
+      "name.sl": { $regex: name, $options: "i" },
+    }),
+  })
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const articles = await features.query;
+
+  res.status(200).json({
+    status: "success",
+    results: articles.length,
+    articles,
+  });
+});
+
+export const getAllVisibleArticlesReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  let filter = { hiddenReception: { $ne: true } };
+
+  const { name, ...query } = req.query;
+
+  const features = new APIFeatures(Article.find(filter), {
+    ...query,
+    ...(name && {
+      "name.sl": { $regex: name, $options: "i" },
+    }),
+  })
     .filter()
     .sort()
     .limitFields()
@@ -113,11 +148,6 @@ export const buyArticlesOnline = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
-  // const paymentData = await checkPayment(res.locals.checkoutId);
-
-  // if (paymentData instanceof Error)
-  //   return next(new AppError("Something went wrong", 500));
-
   const lastInvoice = await Invoice.findOne().sort({
     "invoiceData.invoiceNo": -1,
   });
@@ -174,7 +204,7 @@ export const buyArticlesOnline = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+      taxAmount: el.article.priceDDV * el.quantity,
     };
     return tax;
   });
@@ -302,7 +332,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+      taxAmount: el.article.priceDDV * el.quantity,
     };
     return tax;
   });
@@ -370,11 +400,6 @@ export const buyGiftOnline = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
-  // const paymentData = await checkPayment(res.locals.checkoutId);
-
-  // if (paymentData instanceof Error)
-  //   return next(new AppError("Something went wrong", 500));
-
   const lastInvoice = await Invoice.findOne().sort({
     "invoiceData.invoiceNo": -1,
   });
@@ -396,47 +421,27 @@ export const buyGiftOnline = catchAsync(async function (
   );
 
   for (const el of cart) {
-    if (el.article.label === "V") {
-      const data = {
-        name: el.article.name,
-        type: el.article.type,
-        duration: el.article.duration,
-        visits: el.article.visits,
-        giftCode: generateRandomString(8),
-      };
-      const ticket = await Ticket.create(data);
+    const data = {
+      article: el.article.id,
+      giftCode: generateRandomString(8),
+      label: el.article.label,
+    };
+    const gift = await Gift.create(data);
 
-      if (!ticket) return next(new AppError("Something went wrong!", 500));
+    if (!gift) return next(new AppError("Something went wrong!", 500));
 
-      await sendCode({
-        firstName: user.firstName,
-        code: ticket.giftCode,
-        email: req.user.email,
-      });
-    }
-
-    if (el.article.label === "A") {
-      const data = {
-        article: el.article.id,
-        giftCode: generateRandomString(8),
-      };
-      const gift = await Gift.create(data);
-
-      if (!gift) return next(new AppError("Something went wrong!", 500));
-
-      await sendCode({
-        firstName: user.firstName,
-        code: gift.giftCode,
-        email: req.user.email,
-      });
-    }
+    await sendCode({
+      firstName: user.firstName,
+      code: gift.giftCode,
+      email: req.user.email,
+    });
   }
 
   const taxes = cart.map((el) => {
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+      taxAmount: el.article.priceDDV * el.quantity,
     };
     return tax;
   });
@@ -518,19 +523,23 @@ export const buyArticlesInPerson = catchAsync(async function (
       async (el: {
         articleId: string;
         quantity: number;
+        classId: string[];
         gift: boolean;
         useNow: boolean;
-        otherId: string[];
+        otherId: string;
+        childId: string;
       }) => {
         const article = await Article.findById(el.articleId);
         if (!article) return next(new AppError("Article not found!", 404));
 
         const articleToBuy = {
           article,
-          quantity: el.otherId ? el.otherId.length : el.quantity,
+          quantity: el.otherId ? 1 : el.quantity,
           gift: el.gift,
           useNow: el.useNow,
           otherId: el.otherId,
+          classId: el.classId,
+          childId: el.childId,
         };
 
         return articleToBuy;
@@ -549,7 +558,7 @@ export const buyArticlesInPerson = catchAsync(async function (
               type: el.article.type,
               duration: el.article.duration,
               visits: el.article.visits,
-              user: req.user.id,
+              user: user.id,
             };
             const ticket = await Ticket.create(data);
 
@@ -566,126 +575,135 @@ export const buyArticlesInPerson = catchAsync(async function (
 
       if (el.gift && !el.useNow) {
         const data = {
+          article: el.article.id,
+          giftCode: generateRandomString(8),
+          label: el.article.label,
+        };
+
+        await Promise.all(
+          Array.from({ length: el.quantity }).map(async () => {
+            const gift = await Gift.create(data);
+
+            if (!gift) return next(new AppError("Something went wrong!", 500));
+
+            await sendCode({
+              firstName: user.firstName,
+              code: gift.giftCode,
+              email: user.email,
+            });
+          })
+        );
+      }
+
+      if (el.useNow) {
+        const data = {
           name: el.article.name,
           type: el.article.type,
           duration: el.article.duration,
           visits: el.article.visits,
-          giftCode: generateRandomString(10),
+          user: user.id,
+          used: true,
         };
+
         const ticket = await Ticket.create(data);
 
         if (!ticket) return next(new AppError("Something went wrong!", 500));
 
-        await sendCode({ firstName: user.firstName, code: ticket.giftCode });
+        tickets = [...tickets, ticket.id];
+
+        await Visit.create({
+          date: new Date(),
+          user: user.id,
+          ticket: tickets[0],
+        });
       }
 
-      if (el.useNow && !el.gift) {
+      if (!el.gift && el.otherId) {
+        const otherUser = await User.findById(el.otherId);
+        if (!otherUser) return next(new AppError("User not found", 404));
+
         await Promise.all(
-          Array.from({ length: el.quantity }).map(async () => {
+          Array.from({ length: 1 }).map(async () => {
             const data = {
               name: el.article.name,
               type: el.article.type,
               duration: el.article.duration,
               visits: el.article.visits,
-              user: req.user.id,
+              user: el.otherId,
               used: true,
             };
-
             const ticket = await Ticket.create(data);
 
             if (!ticket)
               return next(new AppError("Something went wrong!", 500));
 
-            tickets = [...tickets, ticket.id];
+            await Visit.create({
+              date: new Date(),
+              user: el.otherId,
+              ticket: ticket.id,
+            });
           })
         );
-
-        const visit = await Visit.create({
-          date: new Date(),
-          user: user.id,
-          ticket: tickets[0],
-        });
-
-        if (!visit) return next(new AppError("Something went wrong!", 500));
-
-        const visits = [...user.visits, visit.id];
-        const unusedTickets = [...user.unusedTickets, ...tickets];
-        await User.findByIdAndUpdate(user.id, { unusedTickets, visits });
-      }
-
-      if (!el.gift && el.otherId) {
-        el.otherId.forEach(async (id: string) => {
-          const otherUser = await User.findById(id);
-          if (!otherUser) return next(new AppError("User not found", 404));
-
-          let otherUserTickets: ObjectId[] = [];
-          let visit: string = "";
-
-          await Promise.all(
-            Array.from({ length: 1 }).map(async () => {
-              const data = {
-                name: el.article.name,
-                type: el.article.type,
-                duration: el.article.duration,
-                visits: el.article.visits,
-                user: id,
-                used: true,
-              };
-              const ticket = await Ticket.create(data);
-
-              if (!ticket)
-                return next(new AppError("Something went wrong!", 500));
-
-              const newVisit = await Visit.create({
-                date: new Date(),
-                user: id,
-                ticket: ticket.id,
-              });
-
-              otherUserTickets = [...otherUserTickets, ticket.id];
-              visit = newVisit.id;
-            })
-          );
-
-          const usedTickets = [...otherUser.usedTickets, ...otherUserTickets];
-          const visits = [...otherUser.visits, visit];
-          await User.findByIdAndUpdate(otherUser.id, { usedTickets, visits });
-        });
       }
     }
 
-    if (el.article.label === "A") {
-      const currentClass = await Class.findById(el.article.class);
+    if (el.article.label === "A" || el.article.label === "VV") {
+      if (!el.gift) {
+        for (const id of el.classId) {
+          const currentClass = await Class.findById(id);
 
-      if (!currentClass) return next(new AppError("Class not found", 404));
+          if (!currentClass) return next(new AppError("Class not found", 404));
 
-      if (
-        currentClass.full ||
-        currentClass.students.length >= currentClass.maxStudents
-      )
-        return next(new AppError("Class is full", 400));
+          if (
+            currentClass.full ||
+            currentClass.students.length >= currentClass.maxStudents
+          )
+            return next(new AppError("Class is full", 400));
 
-      if (
-        currentClass.students.map((student) => student.student === user._id)
-          .length > 0
-      )
-        return next(
-          new AppError("You are already signed up for this class", 400)
+          if (
+            currentClass.students.map((student) => student.student === user._id)
+              .length > 0
+          )
+            return next(
+              new AppError("You are already signed up for this class", 400)
+            );
+
+          const students = [
+            ...currentClass.students,
+            {
+              student: user._id,
+              attendance: [],
+            },
+          ];
+
+          if (students.length >= currentClass.maxStudents) {
+            const full = true;
+            await Class.findByIdAndUpdate(currentClass.id, { students, full });
+          } else {
+            await Class.findByIdAndUpdate(currentClass.id, { students });
+          }
+        }
+      }
+      if (el.gift) {
+        const data = {
+          article: el.article.id,
+          giftCode: generateRandomString(8),
+          label: el.article.label,
+        };
+
+        await Promise.all(
+          Array.from({ length: el.quantity }).map(async () => {
+            const gift = await Gift.create(data);
+
+            if (!gift) return next(new AppError("Something went wrong!", 500));
+
+            await sendCode({
+              firstName: user.firstName,
+              code: gift.giftCode,
+              email: user.email,
+            });
+          })
         );
-
-      const students = [
-        ...currentClass.students,
-        {
-          student: user._id,
-          attendance: [],
-        },
-      ];
-
-      if (students.length >= currentClass.maxStudents) {
-        const full = true;
-        await Class.findByIdAndUpdate(currentClass.id, { students, full });
-      } else {
-        await Class.findByIdAndUpdate(currentClass.id, { students });
       }
     }
   });
@@ -694,7 +712,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+      taxAmount: el.article.priceDDV * el.quantity,
     };
     return tax;
   });
@@ -726,8 +744,9 @@ export const buyArticlesInPerson = catchAsync(async function (
     const item = {
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
+      amountWithTax: el.article.priceDDV,
       quantity: el.quantity,
-      item: el.article.name,
+      item: el.article.name.sl,
     };
     return item;
   });
@@ -735,6 +754,7 @@ export const buyArticlesInPerson = catchAsync(async function (
   const invoiceDataToSave = {
     paymentDueDate: new Date(),
     buyer: user.id,
+    company: req.body.company,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,

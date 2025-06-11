@@ -13,7 +13,8 @@ interface IArticle {
   visits: number;
   duration: number;
   label: string;
-  hidden: boolean;
+  hiddenReception: boolean;
+  hiddenUsers: boolean;
   morning: Boolean;
   noClasses: number;
   startDate: Date;
@@ -39,13 +40,15 @@ const articleSchema = new Schema<IArticle>(
     },
     price: {
       type: Number,
-      required: [true, "Ticket item must have a price"],
     },
     taxRate: {
       type: Number,
       required: [true, "Ticket item must have a tax rate"],
     },
-    priceDDV: Number,
+    priceDDV: {
+      type: Number,
+      required: [true, "Ticket item must have a price"],
+    },
     type: {
       type: String,
       enum: ["dnevna", "paket", "terminska"],
@@ -59,10 +62,14 @@ const articleSchema = new Schema<IArticle>(
     duration: Number,
     label: {
       type: String,
-      enum: ["V", "A", "I"],
+      enum: ["V", "VV", "A", "O"],
     },
     noClasses: Number,
-    hidden: {
+    hiddenReception: {
+      type: Boolean,
+      default: true,
+    },
+    hiddenUsers: {
       type: Boolean,
       default: true,
     },
@@ -76,9 +83,7 @@ const articleSchema = new Schema<IArticle>(
 articleSchema.pre("save", function (next) {
   if (!this.isNew && this.isModified("name")) return next();
 
-  this.priceDDV = parseFloat(
-    (this.price + this.price * this.taxRate).toFixed(2)
-  );
+  this.price = parseFloat((this.priceDDV / (1 + this.taxRate)).toFixed(2));
 
   next();
 });
@@ -102,6 +107,15 @@ articleSchema.virtual("classPriceData").get(function () {
     const classPriceData = {
       price,
       priceDDV,
+    };
+
+    return classPriceData;
+  }
+
+  if (this.type == "A" && !this.endDate) {
+    const classPriceData = {
+      price: this.price,
+      priceDDV: this.priceDDV,
     };
 
     return classPriceData;

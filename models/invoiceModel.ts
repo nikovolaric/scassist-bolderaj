@@ -30,6 +30,7 @@ interface IInvoice {
   soldItems: {
     taxRate: number;
     taxableAmount: number;
+    amountWithTax: number;
     quantity: number;
     item: string;
   }[];
@@ -41,6 +42,7 @@ interface IInvoice {
   EOR: string | undefined;
   soldBy: string | undefined;
   reference: string;
+  storno: boolean;
 }
 
 const invoiceSchema = new Schema<IInvoice>(
@@ -66,13 +68,13 @@ const invoiceSchema = new Schema<IInvoice>(
     },
     invoiceDate: {
       type: Date,
-      default: Date.now(),
+      default: () => new Date(),
       required: [true, "Invoice must have an invoice date"],
     },
     serviceCompletionDate: {
       type: Date,
       required: [true, "Invoice must have a service completion date"],
-      default: Date.now(),
+      default: () => new Date(),
     },
     paymentDueDate: {
       type: Date || String,
@@ -103,6 +105,10 @@ const invoiceSchema = new Schema<IInvoice>(
           type: Number,
           required: [true, "Invoice must have a taxable amount"],
         },
+        amountWithTax: {
+          type: Number,
+          required: [true, "Invoice must have a taxable amount"],
+        },
         quantity: {
           type: Number,
           required: [true, "Invoice must have a quantity"],
@@ -121,7 +127,7 @@ const invoiceSchema = new Schema<IInvoice>(
     },
     paymentMethod: {
       type: String,
-      enum: ["gotovina", "nakazilo", "card", "online"],
+      enum: ["gotovina", "nakazilo", "card", "online", "paypal"],
     },
     issuer: {
       type: Schema.Types.ObjectId,
@@ -134,6 +140,7 @@ const invoiceSchema = new Schema<IInvoice>(
       type: String,
       unique: true,
     },
+    storno: Boolean,
   },
   { timestamps: true }
 );
@@ -149,9 +156,7 @@ invoiceSchema.pre("save", function (next) {
   this.totalAmount = parseFloat(
     this.soldItems
       .reduce(
-        (acc, soldItem) =>
-          acc +
-          soldItem.taxableAmount * (1 + soldItem.taxRate) * soldItem.quantity,
+        (acc, soldItem) => acc + soldItem.amountWithTax * soldItem.quantity,
         0
       )
       .toFixed(2)

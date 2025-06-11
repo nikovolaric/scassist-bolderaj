@@ -11,6 +11,7 @@ import AppError from "../utils/appError";
 import Article from "../models/articleModel";
 import User from "../models/userModel";
 import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
+import { Types } from "mongoose";
 
 export const getAllInvoices = getAll(Invoice);
 export const createInvoice = catchAsync(async function (
@@ -131,6 +132,81 @@ export const getMyInvoices = catchAsync(async function (
   });
 });
 
+export const myIssuedInvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // const invoices = await Invoice.find({
+  //   issuer: req.user.id,
+  //   invoiceDate: { $gte: startOfDay, $lte: endOfDay },
+  // })
+  //   .populate({
+  //     path: "buyer",
+  //     select: "firstName lastName email address city country",
+  //     match: {
+  //       lastName: { $regex: req.query.name, $options: "i" },
+  //     },
+  //   })
+  //   .sort({ invoiceDate: -1 });
+
+  const invoices = await Invoice.aggregate([
+    {
+      $match: {
+        issuer: new Types.ObjectId(req.user.id),
+        invoiceDate: { $gte: startOfDay, $lte: endOfDay },
+      },
+    },
+    {
+      $lookup: {
+        from: "users", // ime kolekcije (navadno množina modela)
+        localField: "buyer",
+        foreignField: "_id",
+        as: "buyer",
+      },
+    },
+    { $unwind: "$buyer" },
+    {
+      $match: {
+        "buyer.lastName": {
+          $regex: req.query.name || "",
+          $options: "i",
+        },
+      },
+    },
+    {
+      $project: {
+        invoiceData: 1,
+        invoiceDate: 1,
+        paymentMethod: 1,
+        buyer: {
+          firstName: 1,
+          lastName: 1,
+          email: 1,
+          address: 1,
+          city: 1,
+          country: 1,
+        },
+      },
+    },
+    {
+      $sort: { invoiceDate: -1 },
+    },
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    results: invoices.length,
+    invoices,
+  });
+});
+
 export const downloadMyInvoice = catchAsync(async function (
   req: Request,
   res: Response,
@@ -232,7 +308,7 @@ export const downloadInvoicePDF = catchAsync(async function (
       : buyer
       ? buyer.postalCode
       : invoice.recepient.postalCode,
-    custumer_city: invoice.company.city
+    customer_city: invoice.company.city
       ? invoice.company.city
       : buyer
       ? buyer.city

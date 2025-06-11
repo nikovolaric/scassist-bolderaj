@@ -9,6 +9,7 @@ export function generateInvoiceMail(invoiceData: any) {
         item: string;
         quantity: number;
         taxableAmount: number;
+        amountWithTax: number;
         taxRate: number;
       }) => {
         return `
@@ -16,11 +17,9 @@ export function generateInvoiceMail(invoiceData: any) {
         <td align="left">${item.item}</td>
         <td align="left">${item.quantity}</td>
         <td align="right">${item.taxRate * 100}%</td>
-        <td align="right">${(
-          item.taxableAmount *
-          (1 + item.taxRate) *
-          item.quantity
-        ).toFixed(2)} €</td>
+        <td align="right">${(item.amountWithTax * item.quantity).toFixed(
+          2
+        )} €</td>
       </tr>
       `;
       }
@@ -46,14 +45,14 @@ export function generateInvoiceMail(invoiceData: any) {
   }
 
   function taxAmount(
-    arr: { taxableAmount: number; quantity: number; taxRate: number }[]
+    arr: { amountWithTax: number; taxableAmount: number; quantity: number }[]
   ) {
     return arr
       .reduce(
         (
           a: number,
-          c: { taxableAmount: number; quantity: number; taxRate: number }
-        ) => a + c.taxableAmount * c.taxRate * c.quantity,
+          c: { amountWithTax: number; taxableAmount: number; quantity: number }
+        ) => a + (c.amountWithTax - c.taxableAmount) * c.quantity,
         0
       )
       .toFixed(2);
@@ -76,16 +75,18 @@ export function generateInvoiceMail(invoiceData: any) {
           "sl-SI",
           {
             year: "numeric",
-            month: "numeric",
-            day: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
           }
         )}</mj-text>
         <mj-text align="center" padding="3px">Datum opr. storitve: ${invoiceData.completed_date.toLocaleDateString(
           "sl-SI",
           {
             year: "numeric",
-            month: "numeric",
-            day: "numeric",
+            month: "2-digit",
+            day: "2-digit",
           }
         )}</mj-text>
         <mj-text align="center" padding="3px">Kraj izdaje: Celje</mj-text>
@@ -112,17 +113,21 @@ export function generateInvoiceMail(invoiceData: any) {
     <mj-section>
       <mj-column>
         <mj-text font-size="18px" font-weight="bold">Podatki o plačniku</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">${
-          invoiceData.company_name
-            ? invoiceData.company_name
-            : invoiceData.customer_name
-        }</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">${
+             <mj-text padding-top="3px" padding-bottom="3px">${
+               invoiceData.company_name
+                 ? invoiceData.company_name
+                 : invoiceData.customer_name
+             }</mj-text>
+        ${
           invoiceData.customer_address
-        }</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">${
-          invoiceData.customer_postalCode
-        } ${invoiceData.custumer_city}</mj-text>
+            ? `<mj-text padding-top="3px" padding-bottom="3px">${invoiceData.customer_address}</mj-text>`
+            : ""
+        }
+        ${
+          invoiceData.customer_postalCode && invoiceData.customer_city
+            ? `<mj-text padding-top="3px" padding-bottom="3px">${invoiceData.customer_postalCode} ${invoiceData.customer_city}</mj-text>`
+            : ""
+        }
         ${
           invoiceData.tax_number
             ? `<mj-text padding-top="3px" padding-bottom="3px">ID za DDV: ${invoiceData.tax_number}</mj-text>`
@@ -188,8 +193,8 @@ export function generateInvoiceMail(invoiceData: any) {
           "sl-SI",
           {
             year: "numeric",
-            month: "numeric",
-            day: "numeric",
+            month: "2-digit",
+            day: "2-digit",
           }
         )}</mj-text>
         <mj-text padding-top="3px" padding-bottom="3px">ZOI: ${
@@ -200,7 +205,7 @@ export function generateInvoiceMail(invoiceData: any) {
 
     <mj-section>
       <mj-column>
-        <mj-text align="center" font-size="16px">Želimo vam prijetno plezanje!</mj-text>
+        <mj-text align="center" font-size="16px">Želimo ti prijetno plezanje!</mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
@@ -288,9 +293,15 @@ export async function generateInvoicePDFBuffer(
         50,
         100
       )
-      .text(invoiceData.customer_address, 50, 100 + 15)
       .text(
-        `${invoiceData.customer_postalCode} ${invoiceData.custumer_city}`,
+        invoiceData.customer_address ? invoiceData.customer_address : "",
+        50,
+        100 + 15
+      )
+      .text(
+        invoiceData.customer_postalCode && invoiceData.customer_city
+          ? `${invoiceData.customer_postalCode} ${invoiceData.customer_city}`
+          : "",
         50,
         100 + 30
       )
@@ -323,8 +334,11 @@ export async function generateInvoicePDFBuffer(
       .text(
         invoiceData.invoice_date.toLocaleDateString("sl-SI", {
           year: "numeric",
-          month: "numeric",
-          day: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
         }),
         170,
         220 + 15
@@ -333,8 +347,8 @@ export async function generateInvoicePDFBuffer(
       .text(
         invoiceData.due_date.toLocaleDateString("sl-SI", {
           year: "numeric",
-          month: "numeric",
-          day: "numeric",
+          month: "2-digit",
+          day: "2-digit",
         }),
         170,
         220 + 30
@@ -343,8 +357,8 @@ export async function generateInvoicePDFBuffer(
       .text(
         invoiceData.completed_date.toLocaleDateString("sl-SI", {
           year: "numeric",
-          month: "numeric",
-          day: "numeric",
+          month: "2-digit",
+          day: "2-digit",
         }),
         170,
         220 + 45
@@ -372,6 +386,7 @@ export async function generateInvoicePDFBuffer(
           item: string;
           quantity: number;
           taxableAmount: number;
+          amountWithTax: number;
           taxRate: number;
         },
         i: number
@@ -383,7 +398,7 @@ export async function generateInvoicePDFBuffer(
           el.item,
           el.quantity,
           el.taxRate * 100,
-          `${(el.taxableAmount * (1 + el.taxRate) * el.quantity).toFixed(2)} €`
+          `${(el.amountWithTax * el.quantity).toFixed(2)} €`
         );
       }
     );
@@ -422,14 +437,18 @@ export async function generateInvoicePDFBuffer(
     }
 
     function taxAmount(
-      arr: { taxableAmount: number; quantity: number; taxRate: number }[]
+      arr: { amountWithTax: number; taxableAmount: number; quantity: number }[]
     ) {
       return arr
         .reduce(
           (
             a: number,
-            c: { taxableAmount: number; quantity: number; taxRate: number }
-          ) => a + c.taxableAmount * c.taxRate * c.quantity,
+            c: {
+              amountWithTax: number;
+              taxableAmount: number;
+              quantity: number;
+            }
+          ) => a + (c.amountWithTax - c.taxableAmount) * c.quantity,
           0
         )
         .toFixed(2);
@@ -486,7 +505,7 @@ export async function generateInvoicePDFBuffer(
       })
       .moveDown();
 
-    doc.text("Želimo vam prijetno plezanje!", 0, 740, {
+    doc.text("Želimo ti prijetno plezanje!", 0, 740, {
       align: "center",
     });
 

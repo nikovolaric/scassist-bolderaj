@@ -3,11 +3,33 @@ import User from "../models/userModel";
 import { getAll, getOne } from "./handlerFactory";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
+import Class from "../models/classModel";
+import Company from "../models/companyModel";
 
-export const getUser = getOne(User, {
-  select: "-__v -role -passwordChangedAt",
+export const getUser = getOne(User);
+// export const getAllUsers = getAll(User);
+export const getAllUsers = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { lastName, page, limit, ...query } = req.query;
+
+  const users = await User.find({
+    ...query,
+    ...(lastName && { lastName: { $regex: lastName, $options: "i" } }),
+  })
+    .collation({ locale: "sl", strength: 1 })
+    .sort({ lastName: 1 })
+    .limit(Number(limit) || 50)
+    .skip(Number(limit) * (Number(page) - 1) || 0);
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    users,
+  });
 });
-export const getAllUsers = getAll(User);
 
 export const getMe = catchAsync(async function (
   req: Request,
@@ -18,18 +40,10 @@ export const getMe = catchAsync(async function (
 
   if (!me) return next(new AppError("Please log in.", 401));
 
-  if (me.usedTickets.length > 0 || me.unusedTickets.length > 0) {
+  if (me.unusedTickets.length > 0) {
     await me.populate({
-      path: "unusedTickets usedTickets",
+      path: "unusedTickets",
       select: "-user -__v -used",
-      strictPopulate: false,
-    });
-  }
-
-  if (me.visits.length > 0) {
-    await me.populate({
-      path: "visits",
-      select: "-user -__v",
       strictPopulate: false,
     });
   }
@@ -226,5 +240,93 @@ export const createMyChildLoginInfo = catchAsync(async function (
   res.status(200).json({
     status: "success",
     myChild,
+  });
+});
+
+export const getUserChildren = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.params.id).populate({
+    path: "parentOf.child",
+    select: "birthDate firstName lastName",
+  });
+
+  if (!user) return next(new AppError("User not found!", 404));
+
+  const children = user.parentOf;
+
+  res.status(200).json({
+    status: "success",
+    results: children.length,
+    children,
+  });
+});
+
+export const getUserTickets = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.params.id).populate({
+    path: "unusedTickets",
+    select: "-__v",
+  });
+
+  if (!user) return next(new AppError("User not found!", 404));
+
+  res.status(200).json({
+    status: "success",
+    results: user.unusedTickets.length,
+    unusedTickets: user.unusedTickets,
+  });
+});
+
+export const getUserClasses = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classes = await Class.find({
+    students: { $elemMatch: { student: req.params.id } },
+    $expr: { $gt: [{ $size: "$dates" }, 1] },
+  }).select("dates time className");
+
+  res.status(200).json({
+    status: "success",
+    results: classes.length,
+    classes,
+  });
+});
+
+export const getUserActivities = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classes = await Class.find({
+    students: { $elemMatch: { student: req.params.id } },
+    dates: { $size: 1 },
+  }).select("dates time className");
+
+  res.status(200).json({
+    status: "success",
+    results: classes.length,
+    classes,
+  });
+});
+
+export const getUserCompanies = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const companies = await Company.find({ users: req.params.id });
+
+  res.status(200).json({
+    status: "success",
+    results: companies.length,
+    companies,
   });
 });

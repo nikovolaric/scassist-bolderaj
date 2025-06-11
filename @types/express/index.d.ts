@@ -8,6 +8,7 @@ declare module "express-serve-static-core" {
         _id: Schema.Types.ObjectId;
         firstName: string;
         lastName: string;
+        fullName: string;
         birthDate: Date;
         phoneNumber: string;
         email: string;
@@ -17,18 +18,20 @@ declare module "express-serve-static-core" {
         country: string;
         password: string;
         role: string[];
+        age: number;
+        ageGroup: string[];
         canInvoice: Boolean;
         taxNo: string;
         invoiceNickname: string;
         unusedTickets: Schema.Types.ObjectId[] | undefined;
-        usedTickets: Schema.Types.ObjectId[] | undefined;
-        visits: Schema.Types.ObjectId[] | undefined;
         company: Schema.Types.ObjectId | undefined;
         agreesToTerms: Boolean;
+        infoIsTrue: Boolean;
         signedForNewsletter: Boolean;
         parentOf: {
           child: Schema.Types.ObjectId;
           agreesToTerms: boolean;
+          infoIsTrue: boolean;
           signedAt: Date;
         }[];
         parentContact: { phoneNumber: string; email: string } | undefined;
@@ -37,6 +40,17 @@ declare module "express-serve-static-core" {
         updatedAt: Date;
         passwordChangedAt: Date;
         correctPassword: Function;
+      };
+      cashRegister: {
+        user: Schema.Types.ObjectId;
+        loginTime: Date;
+        startCashBalance: number;
+        startCreditCardBalance: number;
+        endCashBalance: number;
+        endCreditCardBalance: number;
+        logoutTime: Date;
+        cashBalanceDifference: number;
+        creditCardBalanceDifference: number;
       };
     }
   }

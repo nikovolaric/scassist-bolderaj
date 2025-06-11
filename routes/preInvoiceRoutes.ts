@@ -3,10 +3,13 @@ import { protect, restrictTo } from "../controllers/authController";
 import {
   checkPayedPreInvoices,
   createInvoiceFromPreInvoice,
+  createInvoiceFromPreInvoiceReception,
   createPreInvoice,
   downloadMyPreInvoice,
   downloadPreInvoiceFromClass,
+  downloadPreInvoiceReception,
   getMyUnpaidPreInvoices,
+  getUserUnpaidPreinvoices,
 } from "../controllers/preInvoiceController";
 import multer from "multer";
 
@@ -17,6 +20,15 @@ router.use(protect);
 router.get("/myunpaid", getMyUnpaidPreInvoices);
 router.get("/download/class/:classId", downloadPreInvoiceFromClass);
 router.get("/download/:id", downloadMyPreInvoice);
+
+router.use(restrictTo(["admin", "employee"]));
+
+router.get("/user/:id", getUserUnpaidPreinvoices);
+router.get("/downloadreception/:id", downloadPreInvoiceReception);
+router.post(
+  "/createinvoicereception/:id",
+  createInvoiceFromPreInvoiceReception
+);
 
 router.use(restrictTo(["admin"]));
 
