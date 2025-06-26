@@ -11,6 +11,9 @@ import {
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
+import { deleteOne } from "./handlerFactory";
+
+export const deletePreInvoice = deleteOne(PreInvoice);
 
 export const createPreInvoice = catchAsync(async function (
   req: Request,

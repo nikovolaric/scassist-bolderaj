@@ -30,7 +30,14 @@ export const getAllArticles = catchAsync(async function (
 ) {
   let filter = {};
 
-  const features = new APIFeatures(Article.find(filter), req.query)
+  const { name, ...query } = req.query;
+
+  const features = new APIFeatures(Article.find(filter), {
+    ...query,
+    ...(name && {
+      "name.sl": { $regex: name, $options: "i" },
+    }),
+  })
     .filter()
     .sort()
     .limitFields()
@@ -185,6 +192,8 @@ export const buyArticlesOnline = catchAsync(async function (
             duration: el.article.duration,
             visits: el.article.visits,
             morning: el.article.morning,
+            validUntil:
+              Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration,
             user: req.user.id,
           };
           const ticket = await Ticket.create(data);
@@ -236,6 +245,7 @@ export const buyArticlesOnline = catchAsync(async function (
     const item = {
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
+      amountWithTax: el.article.priceDDV,
       quantity: el.quantity,
       item: el.article.name.sl,
     };
@@ -364,6 +374,8 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     const item = {
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
+      amountWithTax: el.article.priceDDV,
+
       quantity: el.quantity,
       item: el.article.name.sl,
     };

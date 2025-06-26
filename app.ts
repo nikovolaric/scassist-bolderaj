@@ -23,8 +23,13 @@ app.use(express.json({ limit: "10kb" }));
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://test.bolderaj.si"],
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.178.32:5173",
+      "https://test.bolderaj.si",
+    ],
     credentials: true,
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 app.use(cookieParser());

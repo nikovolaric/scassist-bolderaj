@@ -1,14 +1,17 @@
 import { NextFunction, Request, Response } from "express";
 import Company from "../models/companyModel";
 import catchAsync from "../utils/catchAsync";
-import { createOne, getAll, getOne } from "./handlerFactory";
+import { createOne, deleteOne, getOne, updateOne } from "./handlerFactory";
 import AppError from "../utils/appError";
 import APIFeatures from "../utils/apiFeatures";
 import Ticket from "../models/ticketModel";
 import Visit from "../models/visitModel";
+import User from "../models/userModel";
 
 export const getCompany = getOne(Company);
 export const createCompany = createOne(Company);
+export const updateCompany = updateOne(Company);
+export const deleteCompany = deleteOne(Company);
 
 export const getAllCompanies = catchAsync(async function (
   req: Request,
@@ -77,12 +80,55 @@ export const useCompanyTicket = catchAsync(async function (
     const newVisit = {
       user: id,
       ticket: ticket._id,
+      company: company._id,
     };
 
     await Visit.create(newVisit);
     await ticket.save({ validateBeforeSave: false });
     await company.save({ validateBeforeSave: false });
   }
+
+  res.status(201).json({
+    status: "success",
+  });
+});
+
+export const removeUser = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const company = await Company.findById(req.params.id);
+
+  if (!company) return next(new AppError("Company does not exist", 404));
+
+  const userId = req.params.userid;
+
+  company.users = company.users.filter((user: any) => user.id !== userId);
+
+  await company.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: "success",
+  });
+});
+
+export const addUser = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const company = await Company.findById(req.params.id);
+
+  if (!company) return next(new AppError("Company does not exist", 404));
+
+  const user = await User.findById(req.params.userid);
+
+  if (!user) return next(new AppError("User does not exist", 404));
+
+  company.users.push(user._id);
+
+  await company.save({ validateBeforeSave: false });
 
   res.status(201).json({
     status: "success",

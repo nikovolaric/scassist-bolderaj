@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import archiver from "archiver";
 import Invoice from "../models/invoiceModel";
 import catchAsync from "../utils/catchAsync";
-import { createOne, getAll } from "./handlerFactory";
+import { getAll } from "./handlerFactory";
 import {
   connectWithFURS,
   generateJSONInvoice,
@@ -399,3 +399,9 @@ export const downloadInvoices = catchAsync(async function (
 
   await archive.finalize();
 });
+
+export const getUserInvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {});

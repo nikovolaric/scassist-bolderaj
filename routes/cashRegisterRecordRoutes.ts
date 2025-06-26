@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect, protectIP, restrictTo } from "../controllers/authController";
+import { protect, restrictTo } from "../controllers/authController";
 import {
   deleteCashRegisterRecord,
   endCashRegisterRecord,
@@ -14,6 +14,7 @@ import {
 const router = Router();
 
 router.use(protect);
+
 router.use(restrictTo(["admin", "employee"]));
 
 router.post("/start", startCashRegisterRecord);

@@ -21,8 +21,8 @@ declare module "express-serve-static-core" {
         age: number;
         ageGroup: string[];
         canInvoice: Boolean;
-        taxNo: string;
-        invoiceNickname: string;
+        taxNo: string | undefined;
+        invoiceNickname: string | undefined;
         unusedTickets: Schema.Types.ObjectId[] | undefined;
         company: Schema.Types.ObjectId | undefined;
         agreesToTerms: Boolean;
@@ -40,6 +40,7 @@ declare module "express-serve-static-core" {
         updatedAt: Date;
         passwordChangedAt: Date;
         correctPassword: Function;
+        additionalInfo: string;
       };
       cashRegister: {
         user: Schema.Types.ObjectId;

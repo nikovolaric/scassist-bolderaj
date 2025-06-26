@@ -156,7 +156,7 @@ export const createTicketsForCompany = catchAsync(async function (
 
   if (!company) return next(new AppError("Company not found", 404));
 
-  const article = await Article.findById(req.body.articleId);
+  const article = await Article.findOne({ type: "dnevna", ageGroup: "adult" });
 
   if (!article) return next(new AppError("Article not found", 404));
 

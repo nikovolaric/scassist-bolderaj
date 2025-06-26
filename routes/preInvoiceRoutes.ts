@@ -5,6 +5,7 @@ import {
   createInvoiceFromPreInvoice,
   createInvoiceFromPreInvoiceReception,
   createPreInvoice,
+  deletePreInvoice,
   downloadMyPreInvoice,
   downloadPreInvoiceFromClass,
   downloadPreInvoiceReception,
@@ -33,6 +34,7 @@ router.post(
 router.use(restrictTo(["admin"]));
 
 router.route("/").post(createPreInvoice);
+router.route("/:id").delete(deletePreInvoice);
 router.post("/createinvoice/:id", createInvoiceFromPreInvoice);
 
 const upload = multer({

@@ -14,6 +14,8 @@ import {
   getUserActivities,
   getUserCompanies,
   getUserChildren,
+  removeUserRole,
+  updateUser,
 } from "../controllers/userController";
 import {
   confirmMail,
@@ -66,6 +68,8 @@ router.get("/:id/companies", getUserCompanies);
 router.get("/:id/children", getUserChildren);
 
 router.use(restrictTo(["admin"]));
+router.route("/:id").patch(updateUser);
 router.post("/updaterole/:id", updateUsersRole);
+router.post("/removerole/:id", removeUserRole);
 
 export default router;

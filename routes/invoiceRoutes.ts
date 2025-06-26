@@ -25,6 +25,7 @@ router.get("/download/:id", downloadInvoicePDF);
 router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllInvoices).post(createInvoice);
+router.get("/userinvoices/:id");
 router.post("/download", downloadInvoices);
 
 export default router;

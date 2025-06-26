@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
+  exportCompanyVisits,
   getAllVisits,
+  getDailyVisits,
   getMyChildVisits,
   getMyVisits,
   getUserVisits,
@@ -20,9 +22,11 @@ router.get("/yearly/:year", getYearlyVisitsNo);
 router.use(restrictTo(["admin", "employee"]));
 
 router.get("/user/:id", getUserVisits);
+router.get("/dailyvisits", getDailyVisits);
 
 router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllVisits);
+router.get("/:companyId/exportexcel", exportCompanyVisits);
 
 export default router;

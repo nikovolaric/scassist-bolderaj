@@ -1,9 +1,10 @@
-import { Schema, model } from "mongoose";
+import { Query, Schema, model } from "mongoose";
 
 interface IVisit {
   date: Date;
   user: Schema.Types.ObjectId;
   ticket: Schema.Types.ObjectId;
+  company: Schema.Types.ObjectId;
 }
 
 const visitSchema = new Schema<IVisit>(
@@ -21,19 +22,24 @@ const visitSchema = new Schema<IVisit>(
       type: Schema.Types.ObjectId,
       ref: "Ticket",
     },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+    },
   },
   { timestamps: true }
 );
 
-// visitSchema.post("save", async function (doc, next) {
-//   await doc.populate({ path: "user", select: "firstName" });
+visitSchema.pre(/^find/, function (next) {
+  if (this instanceof Query) {
+    this.populate({
+      path: "ticket user",
+      select: "name firstName lastName birthDate",
+    });
+  }
 
-//   const user = doc.user as any;
-
-//   await sendVisit({ firstName: user.firstName });
-
-//   next();
-// });
+  next();
+});
 
 const Visit = model<IVisit>("Visit", visitSchema);
 

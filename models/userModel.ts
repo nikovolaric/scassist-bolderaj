@@ -22,8 +22,8 @@ interface IUser {
   age: number;
   ageGroup: string[];
   canInvoice: Boolean;
-  taxNo: string;
-  invoiceNickname: string;
+  taxNo: string | undefined;
+  invoiceNickname: string | undefined;
   company: Schema.Types.ObjectId | undefined;
   unusedTickets: Schema.Types.ObjectId[];
   agreesToTerms: Boolean;
@@ -48,6 +48,7 @@ interface IUser {
   active: Boolean;
   confirmMailToken: string | undefined;
   confirmMailTokenExpires: Date | undefined;
+  additionalInfo: string;
   correctPassword: Function;
   find: Function;
   changedPasswordAfter: Function;
@@ -179,6 +180,7 @@ const userSchema = new Schema<IUser>(
     childAuthTokenExpires: Date,
     confirmMailToken: String,
     confirmMailTokenExpires: Date,
+    additionalInfo: String,
     active: {
       type: Boolean,
       default: true,

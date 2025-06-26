@@ -12,10 +12,11 @@ interface IArticle {
   ageGroup: string[];
   visits: number;
   duration: number;
+  activationDuration: number;
   label: string;
   hiddenReception: boolean;
   hiddenUsers: boolean;
-  morning: Boolean;
+  morning: boolean;
   noClasses: number;
   startDate: Date;
   endDate: Date;
@@ -60,6 +61,7 @@ const articleSchema = new Schema<IArticle>(
     },
     visits: Number,
     duration: Number,
+    activationDuration: Number,
     label: {
       type: String,
       enum: ["V", "VV", "A", "O"],

@@ -1,8 +1,10 @@
 import { Schema, model } from "mongoose";
 import { sendInvoice } from "../utils/email";
+import User from "./userModel";
 
 interface IInvoice {
   buyer: Schema.Types.ObjectId;
+  companyId: Schema.Types.ObjectId;
   recepient: {
     name: string;
     address: string;
@@ -43,6 +45,7 @@ interface IInvoice {
   soldBy: string | undefined;
   reference: string;
   storno: boolean;
+  issuerNickname: string;
 }
 
 const invoiceSchema = new Schema<IInvoice>(
@@ -50,6 +53,10 @@ const invoiceSchema = new Schema<IInvoice>(
     buyer: {
       type: Schema.Types.ObjectId,
       ref: "User",
+    },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
     },
     recepient: {
       name: String,
@@ -133,6 +140,7 @@ const invoiceSchema = new Schema<IInvoice>(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+    issuerNickname: String,
     ZOI: String,
     EOR: String,
     soldBy: String,
@@ -185,6 +193,14 @@ invoiceSchema.pre("save", async function (next) {
       this.invoiceData.invoiceNo = lastInvoice.invoiceData.invoiceNo + 1;
   }
 
+  if (this.issuer) {
+    const user = await User.findById(this.issuer);
+
+    if (user) {
+      this.issuerNickname = user.invoiceNickname as string;
+    }
+  }
+
   next();
 });
 
@@ -196,7 +212,6 @@ invoiceSchema.post("save", async function (doc, next) {
   });
 
   const buyer = doc.buyer as any;
-  const issuer = doc.issuer as any;
 
   const mailOptions = {
     email: doc.buyer ? buyer.email : doc.recepient.email,
@@ -222,7 +237,7 @@ invoiceSchema.post("save", async function (doc, next) {
     invoiceDate: doc.invoiceDate,
     invoiceCompletionDate: doc.serviceCompletionDate,
     reference: doc.reference,
-    cashier: issuer ? issuer.invoiceNickname : "Default",
+    cashier: doc.issuerNickname ? doc.issuerNickname : "Default",
     dueDate: doc.paymentDueDate,
     paymentMethod: doc.paymentMethod,
     items: doc.soldItems,

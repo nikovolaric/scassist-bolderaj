@@ -1,19 +1,26 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/userModel";
-import { getAll, getOne } from "./handlerFactory";
+import { getOne, updateOne } from "./handlerFactory";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import Class from "../models/classModel";
 import Company from "../models/companyModel";
 
 export const getUser = getOne(User);
-// export const getAllUsers = getAll(User);
+export const updateUser = updateOne(User);
 export const getAllUsers = catchAsync(async function (
   req: Request,
   res: Response,
   next: NextFunction
 ) {
+  const roleParam = req.query.role as string;
+  const roles = roleParam ? roleParam.split(",") : [];
+
   const { lastName, page, limit, ...query } = req.query;
+
+  if (roles.length) {
+    query.role = { $in: roles };
+  }
 
   const users = await User.find({
     ...query,
@@ -76,9 +83,7 @@ export const updateUsersRole = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
   if (
-    (req.body.role === "employee" ||
-      req.body.role === "admin" ||
-      req.body.role === "employee/coach") &&
+    (req.body.role === "employee" || req.body.role === "admin") &&
     (!req.body.taxNo || !req.body.invoiceNickname)
   ) {
     return next(
@@ -90,21 +95,46 @@ export const updateUsersRole = catchAsync(async function (
   }
 
   if (req.body.role === "coach") {
-    user.role = req.body.role;
+    user.role = [...user.role, req.body.role];
   }
 
   if (
-    (req.body.role === "employee" ||
-      req.body.role === "admin" ||
-      req.body.role === "employee/coach") &&
+    (req.body.role === "employee" || req.body.role === "admin") &&
     req.body.taxNo &&
     req.body.invoiceNickname
   ) {
     user.canInvoice = true;
     user.taxNo = req.body.taxNo;
-    user.role = req.body.role;
+    user.role = [...user.role, req.body.role];
     user.invoiceNickname = req.body.invoiceNickname;
   }
+
+  user.updatedAt = new Date();
+
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    user,
+  });
+});
+
+export const removeUserRole = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.params.id);
+
+  if (!user) return next(new AppError("User not found", 404));
+  if (!req.body.role) {
+    return next(new AppError("You must provide role!", 400));
+  }
+
+  user.canInvoice = false;
+  user.taxNo = undefined;
+  user.role = user.role.filter((role) => role !== req.body.role);
+  user.invoiceNickname = undefined;
 
   user.updatedAt = new Date();
 

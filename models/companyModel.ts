@@ -1,4 +1,4 @@
-import { model, Query, Schema } from "mongoose";
+import { model, Query, Schema, Types } from "mongoose";
 
 interface ICompany {
   companyTaxNo: string;
@@ -8,9 +8,10 @@ interface ICompany {
   companyCity: string;
   companyPhone: string;
   companyEmail: string;
-  users: Schema.Types.ObjectId[];
+  users: Types.ObjectId[];
   unusedTickets: Schema.Types.ObjectId[];
-  usedTickets: Schema.Types.ObjectId[];
+  contactPerson: string;
+  additionalInfo: string;
 }
 
 const companySchema = new Schema<ICompany>(
@@ -55,12 +56,11 @@ const companySchema = new Schema<ICompany>(
         ref: "Ticket",
       },
     ],
-    usedTickets: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Ticket",
-      },
-    ],
+    contactPerson: {
+      type: String,
+      required: true,
+    },
+    additionalInfo: String,
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );

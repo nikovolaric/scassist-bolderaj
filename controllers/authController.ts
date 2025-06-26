@@ -32,6 +32,7 @@ const createSendToken = function (
     ),
     httpOnly: true,
     sameSite: true,
+    secure: true,
   };
 
   // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
@@ -511,21 +512,21 @@ export const updatePassword = catchAsync(async function (
   createSendToken(user, 200, res);
 });
 
-export const protectIP = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const response: any = await fetch("https://ipinfo.io/json");
-  const { ip } = await response.json();
+// export const protectIP = catchAsync(async function (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) {
+//   const response: any = await fetch("https://ipinfo.io/json");
+//   const { ip } = await response.json();
 
-  if (ip !== process.env.COMPUTER_IP)
-    return next(
-      new AppError(
-        "You are not allowed to access this route from your device",
-        401
-      )
-    );
+//   if (ip !== process.env.ALLOWED_IP)
+//     return next(
+//       new AppError(
+//         "You are not allowed to access this route from your device",
+//         401
+//       )
+//     );
 
-  next();
-});
+//   next();
+// });

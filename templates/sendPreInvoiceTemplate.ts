@@ -79,7 +79,7 @@ export function generatePreInvoiceMail(invoiceData: any) {
             day: "2-digit",
           }
         )}</mj-text>
-         <mj-text align="center" padding="3px">Kraj izdaje: Celje</mj-text>
+         <mj-text align="center" padding="3px">Kraj izdaje: Bolderaj d.o.o., PE Plezalni center, Popovičeva ulica 2, 3000 Celje</mj-text>
         <mj-text align="center" padding="3px">Sklic: ${
           invoiceData.reference_number
         }</mj-text>
@@ -92,9 +92,12 @@ export function generatePreInvoiceMail(invoiceData: any) {
         <mj-text padding-top="3px" padding-bottom="3px">Bolderaj d.o.o.</mj-text>
         <mj-text padding-top="3px" padding-bottom="3px">Ob progi 3</mj-text>
         <mj-text padding-top="3px" padding-bottom="3px">3250 Rogaška Slatina</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">SI12345678</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">PE:Bolderaj stena</mj-text>
-        <mj-text padding-top="3px" padding-bottom="3px">TRR: SI56 1234 5678 9000 000 (OTP banka d.d.)</mj-text>
+        <mj-text padding-top="3px" padding-bottom="3px">SI${
+          process.env.BOLDERAJ_TAX_NUMBER
+        }</mj-text>
+         <mj-text padding-top="3px" padding-bottom="3px">TRR: ${
+           process.env.BOLDERAJ_TRR
+         } (OTP banka d.d.)</mj-text>
       </mj-column>
     </mj-section>
 
@@ -223,16 +226,24 @@ export function generatePreInvoicePDFBuffer(invoiceData: any): Promise<Buffer> {
       .image("./templates/assets/logo.png", 50, 50, { width: 100 })
       .fillColor("#444444")
       .fontSize(10)
-      .text("Bolderaj d.o.o.", 200, 50, { align: "right" })
+      .font("SourceSans3Bold")
+      .text("Bolderaj, športne dejavnosti in storitve, d.o.o.", 200, 50, {
+        align: "right",
+      })
+      .font("SourceSans3")
       .text("Ob progi 3", 200, 65, { align: "right" })
       .text("3250 Rogaška Slatina", 200, 80, { align: "right" })
-      .text(`SI${process.env.BOLDERAJ_TAX_NUMBER!}`, 200, 95, {
+      .text(`ID za DDV: SI${process.env.BOLDERAJ_TAX_NUMBER}`, 200, 95, {
         align: "right",
       })
-      .text("PE: Plezalna stena", 200, 110, { align: "right" })
-      .text("TRR SI56 1234 5678 9000 000 (OTP banka d.d.)", 200, 125, {
+      .text(`TRR: ${process.env.BOLDERAJ_TRR}`, 200, 110, {
         align: "right",
       })
+      .font("SourceSans3Bold")
+      .text("Bolderaj d.o.o., PE Plezalni center", 200, 140, { align: "right" })
+      .font("SourceSans3")
+      .text("Popovičeva ulica 2", 200, 155, { align: "right" })
+      .text("3000 Celje", 200, 170, { align: "right" })
       .moveDown();
 
     doc
