@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
+  confirmFiscalInvoiceLater,
   createInvoice,
   downloadInvoicePDF,
   downloadInvoices,
@@ -27,5 +28,7 @@ router.use(restrictTo(["admin"]));
 router.route("/").get(getAllInvoices).post(createInvoice);
 router.get("/userinvoices/:id");
 router.post("/download", downloadInvoices);
+
+router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
 
 export default router;

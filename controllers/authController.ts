@@ -33,6 +33,7 @@ const createSendToken = function (
     httpOnly: true,
     sameSite: true,
     secure: true,
+    // domain: ".bolderaj.si",
   };
 
   // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
@@ -52,7 +53,7 @@ export const signup = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  if (!req.body.agreesToTerms || !req.body.infoIsTrue)
+  if (!req.body.agreesToTerms)
     return next(
       new AppError(
         "You must provide valid information and agree to our terms!",
@@ -93,13 +94,13 @@ export const signup = catchAsync(async function (
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     agreesToTerms: req.body.agreesToTerms,
-    infoIsTrue: req.body.infoIsTrue,
     signedForNewsletter: req.body.signedForNewsletter,
     address: req.body.address,
     city: req.body.city,
     postalCode: req.body.postalCode,
     country: req.body.country,
     parentContact: req.body.parentContact,
+    climbingAbility: req.body.climbingAbility,
     role: ["user"],
   });
 

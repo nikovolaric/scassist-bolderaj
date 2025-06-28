@@ -19,9 +19,11 @@ export const createInvoice = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.body.user);
+  const buyer = await User.findById(req.body.buyer);
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
@@ -45,7 +47,7 @@ export const createInvoice = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.price * el.article.taxRate * el.quantity,
+      taxAmount: el.article.priceDDV * el.quantity,
     };
     return tax;
   });
@@ -58,8 +60,8 @@ export const createInvoice = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "BO",
+    businessPremiseID: "B1",
+    electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
@@ -77,19 +79,21 @@ export const createInvoice = catchAsync(async function (
     const item = {
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
+      amountWithTax: el.article.priceDDV,
       quantity: el.quantity,
-      item: el.article.name,
+      item: el.article.name.sl,
     };
     return item;
   });
 
   const invoiceDataToSave = {
     paymentDueDate: new Date(),
-    buyer: user?.id,
+    buyer: buyer?.id,
     recepient: req.body.recepient,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: invoiceData.invoiceNumber,
     },
     soldItems,
     paymentMethod: "nakazilo",
@@ -405,3 +409,51 @@ export const getUserInvoices = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {});
+
+export const confirmFiscalInvoiceLater = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invoice = await Invoice.findById(req.params.id);
+
+  if (!invoice) {
+    return next(new AppError("Invoice does not exist!", 404));
+  }
+
+  const taxes = invoice.soldItems.map((el) => {
+    const tax = {
+      taxRate: el.taxRate * 100,
+      taxableAmount: el.taxableAmount * el.quantity,
+      taxAmount: el.amountWithTax * el.quantity,
+    };
+    return tax;
+  });
+
+  const invoiceData = {
+    dateTime: new Date(),
+    issueDateTime: new Date(invoice.invoiceDate),
+    numberingStructure: "C",
+    businessPremiseID: "B1",
+    electronicDeviceID: invoice.invoiceData.deviceNo,
+    invoiceNumber: invoice.invoiceData.invoiceNo,
+    invoiceAmount: invoice.totalAmount,
+    paymentAmount: invoice.totalAmount,
+    taxes,
+    operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+    protectedId: invoice.ZOI,
+  };
+
+  const { JSONInvoice } = generateJSONInvoice(invoiceData);
+
+  const EOR = await connectWithFURS(JSONInvoice);
+
+  invoice.EOR = EOR;
+
+  await invoice.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    invoice,
+  });
+});

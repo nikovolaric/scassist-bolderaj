@@ -175,7 +175,9 @@ export const signUpForClassOnline = catchAsync(async function (
   }
 
   if (req.body.articles.paymentMethod === "") {
-    const lastInvoice = await Invoice.findOne().sort({
+    const lastInvoice = await Invoice.findOne({
+      "invoiceData.deviceNo": "BLAGO",
+    }).sort({
       "invoiceData.invoiceNo": -1,
     });
 
@@ -185,8 +187,8 @@ export const signUpForClassOnline = catchAsync(async function (
       taxNumber: process.env.BOLDERAJ_TAX_NUMBER,
       issueDateTime: new Date(),
       numberingStructure: "C",
-      businessPremiseID: "PC1",
-      electronicDeviceID: "BO",
+      businessPremiseID: "B1",
+      electronicDeviceID: "BLAGO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
       invoiceAmount: article.endDate
         ? article.classPriceData.price
@@ -334,7 +336,9 @@ export const signUpChildForClassOnline = catchAsync(async function (
   if (req.body.articles.paymentMethod === "") {
     //preveri stripe plačilo
 
-    const lastInvoice = await Invoice.findOne().sort({
+    const lastInvoice = await Invoice.findOne({
+      "invoiceData.deviceNo": "BLAGO",
+    }).sort({
       "invoiceData.invoiceNo": -1,
     });
 
@@ -344,8 +348,8 @@ export const signUpChildForClassOnline = catchAsync(async function (
       taxNumber: process.env.BOLDERAJ_TAX_NUMBER,
       issueDateTime: new Date(),
       numberingStructure: "C",
-      businessPremiseID: "PC1",
-      electronicDeviceID: "BO",
+      businessPremiseID: "B1",
+      electronicDeviceID: "BLAGO",
       invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
       invoiceAmount: article.endDate
         ? article.classPriceData.price

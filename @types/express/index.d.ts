@@ -26,7 +26,6 @@ declare module "express-serve-static-core" {
         unusedTickets: Schema.Types.ObjectId[] | undefined;
         company: Schema.Types.ObjectId | undefined;
         agreesToTerms: Boolean;
-        infoIsTrue: Boolean;
         signedForNewsletter: Boolean;
         parentOf: {
           child: Schema.Types.ObjectId;
@@ -41,6 +40,7 @@ declare module "express-serve-static-core" {
         passwordChangedAt: Date;
         correctPassword: Function;
         additionalInfo: string;
+        climbingAbility: number;
       };
       cashRegister: {
         user: Schema.Types.ObjectId;

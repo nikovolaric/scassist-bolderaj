@@ -12,19 +12,19 @@ export const createSession = catchAsync(async function (
   if (!amount) return next(new AppError("Please provide the amount", 400));
 
   const params = new URLSearchParams({
-    entityId: "8a829418530df1d201531299e097175c",
+    entityId: "8ac9a4c89662aaee019666c30a041667",
     amount: amount,
     currency: "EUR",
     paymentType: "DB",
     integrity: "true",
   });
 
-  const result = await fetch(`https://eu-test.oppwa.com/v1/checkouts`, {
+  const result = await fetch(`https://eu-prod.oppwa.com/v1/checkouts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization:
-        "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
+        "Bearer OGFjOWE0Yzg5NjYyYWFlZTAxOTY2NmMxMGVlOTE2NGR8QGQ0b1dnS2IrRW9YJTVyP049I3U=",
     },
     body: params,
   });
@@ -49,12 +49,12 @@ export const checkPayment = catchAsync(async function (
   }
 
   const paymentRes = await fetch(
-    `https://eu-test.oppwa.com/v1/checkouts/${req.body.checkoutId}/payment?entityId=8a829418530df1d201531299e097175c`,
+    `https://eu-prod.oppwa.com/v1/checkouts/${req.body.checkoutId}/payment?entityId=8ac9a4c89662aaee019666c30a041667`,
     {
       method: "GET",
       headers: {
         Authorization:
-          "Bearer OGE4Mjk0MTg1MzBkZjFkMjAxNTMxMjk5ZTJjMTE3YWF8Tko5cHo4RXJYP0Y1OEpObmVMVz8=",
+          "Bearer OGFjOWE0Yzg5NjYyYWFlZTAxOTY2NmMxMGVlOTE2NGR8QGQ0b1dnS2IrRW9YJTVyP049I3U=",
       },
     }
   );

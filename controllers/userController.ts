@@ -176,7 +176,8 @@ export const updateMe = catchAsync(
       "postalCode",
       "city",
       "country",
-      "phoneNumber"
+      "phoneNumber",
+      "climbingAbility"
     );
 
     // 3) Update user document

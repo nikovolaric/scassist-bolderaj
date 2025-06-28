@@ -155,7 +155,9 @@ export const buyArticlesOnline = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
@@ -226,8 +228,8 @@ export const buyArticlesOnline = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "BO",
+    businessPremiseID: "B1",
+    electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
@@ -290,7 +292,9 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
@@ -355,8 +359,8 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "BO",
+    businessPremiseID: "B1",
+    electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
@@ -412,7 +416,9 @@ export const buyGiftOnline = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
@@ -466,8 +472,8 @@ export const buyGiftOnline = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "BO",
+    businessPremiseID: "B1",
+    electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
@@ -526,7 +532,9 @@ export const buyArticlesInPerson = catchAsync(async function (
   if (!req.body.paymentMethod)
     return next(new AppError("Please provide payment method!", 400));
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAG1",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
@@ -737,7 +745,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
+    businessPremiseID: "B1",
     electronicDeviceID: "BLAG1",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1

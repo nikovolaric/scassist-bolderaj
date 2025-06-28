@@ -4,6 +4,7 @@ import { readFileSync } from "fs";
 import { Agent } from "https";
 import forge from "node-forge";
 import jwt from "jsonwebtoken";
+import { format } from "date-fns";
 
 interface InvoiceData {
   dateTime: Date;
@@ -17,6 +18,7 @@ interface InvoiceData {
   taxes: any[];
   operatorTaxNumber: string;
   costumerVatNumber?: string;
+  protectedId?: string;
 }
 
 export function generateJSONInvoice(invoiceData: InvoiceData) {
@@ -95,14 +97,18 @@ export function generateJSONInvoice(invoiceData: InvoiceData) {
     InvoiceRequest: {
       Header: {
         MessageID: randomUUID(),
-        DateTime: invoiceData.dateTime.toISOString().split(".")[0],
+        DateTime: format(invoiceData.dateTime, "yyyy-MM-dd'T'HH:mm:ss"),
       },
       Invoice: {
         TaxNumber: Number(process.env.BOLDERAJ_TAX_NUMBER!),
-        IssueDateTime: invoiceData.issueDateTime.toISOString().split(".")[0],
+        IssueDateTime: format(
+          invoiceData.issueDateTime,
+          "yyyy-MM-dd'T'HH:mm:ss"
+        ),
+        // DateTime: invoiceData.dateTime.toISOString().split(".")[0],
         NumberingStructure: invoiceData.numberingStructure,
         InvoiceIdentifier: {
-          BusinessPremiseID: "PC1",
+          BusinessPremiseID: "B1",
           ElectronicDeviceID: invoiceData.electronicDeviceID,
           InvoiceNumber: invoiceData.invoiceNumber.toString(),
         },
@@ -114,7 +120,7 @@ export function generateJSONInvoice(invoiceData: InvoiceData) {
           },
         ],
         OperatorTaxNumber: Number(invoiceData.operatorTaxNumber),
-        ProtectedID: ZOI,
+        ProtectedID: invoiceData.protectedId ?? ZOI,
       },
     },
   };
@@ -130,7 +136,7 @@ export function calculateZOI(
   deviceID: string,
   invoiceAmount: number
 ): string {
-  const p12Buffer = readFileSync(`./certs/10622799-1.p12`);
+  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -209,7 +215,7 @@ export function calculateZOI(
 }
 
 export async function connectWithFURS(data: any) {
-  const p12Buffer = readFileSync(`./certs/10622799-1.p12`);
+  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -277,16 +283,22 @@ export async function connectWithFURS(data: any) {
   const caCerts = [
     readFileSync("./certs/si-trust-root.pem"),
     readFileSync("./certs/sigov-ca2.xcert.pem"),
-    readFileSync("./certs/blagajne-test.fu.gov.si.pem"),
+    readFileSync("./certs/blagajne.fu.gov.si_2024.cer"),
   ];
-  const appCert = readFileSync("./certs/DavPotRacTEST.cer");
-  const myCert = readFileSync("./certs/10622799-1.p12");
+
+  const derBuffer = readFileSync("./certs/DavPotRac_2020.cer");
+  const base64Cert = derBuffer.toString("base64");
+  const appCert = `-----BEGIN CERTIFICATE-----\n${base64Cert
+    .match(/.{1,64}/g)!
+    .join("\n")}\n-----END CERTIFICATE-----`;
+
+  const myCert = readFileSync("./certs/99163314-1.p12");
 
   const agent = new Agent({
     pfx: myCert,
     passphrase: process.env.CERTIFICATE_PASSWORD,
     ca: caCerts,
-    rejectUnauthorized: true, // V produkciji nastavi na `true`
+    rejectUnauthorized: true,
     minVersion: "TLSv1.2",
   });
 
@@ -347,7 +359,7 @@ export async function connectWithFURS(data: any) {
 }
 
 export async function bussinesPremises() {
-  const p12Buffer = readFileSync(`./certs/10622799-1.p12`);
+  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -415,10 +427,10 @@ export async function bussinesPremises() {
   const caCerts = [
     readFileSync("./certs/si-trust-root.pem"),
     readFileSync("./certs/sigov-ca2.xcert.pem"),
+    readFileSync("./certs/blagajne.fu.gov.si_2024.cer"),
   ];
-  const fursCert = readFileSync("./certs/blagajne-test.fu.gov.si.pem");
-  const appCert = readFileSync("./certs/DavPotRacTEST.cer");
-  const myCert = readFileSync("./certs/10622799-1.p12");
+  const appCert = readFileSync("./certs/DavPotRac_2020.cer");
+  const myCert = readFileSync("./certs/99163314-1.p12");
 
   const agent = new Agent({
     pfx: myCert,
@@ -460,28 +472,27 @@ export async function bussinesPremises() {
       },
       BusinessPremise: {
         TaxNumber: Number(process.env.BOLDERAJ_TAX_NUMBER!),
-        BusinessPremiseID: "PC1",
+        BusinessPremiseID: "B1",
         BPIdentifier: {
           RealEstateBP: {
             PropertyID: {
-              CadastralNumber: 365,
-              BuildingNumber: 12,
+              CadastralNumber: 1077,
+              BuildingNumber: 2072,
               BuildingSectionNumber: 3,
             },
             Address: {
-              Street: "Tržaška cesta",
-              HouseNumber: "24",
-              Community: "Ljubljana",
-              City: "Ljubljana",
-              PostalCode: "1000",
+              Street: "Popovičeva ulica",
+              HouseNumber: "2",
+              Community: "Celje",
+              City: "Celje",
+              PostalCode: "3000",
             },
           },
         },
-        // ValidityDate: moment().format('Y-MM-DD'),
         ValidityDate: new Date().toISOString().split(".")[0],
         SoftwareSupplier: [
           {
-            TaxNumber: 12345678,
+            TaxNumber: 17185165,
           },
         ],
       },
@@ -493,6 +504,8 @@ export async function bussinesPremises() {
     algorithm: "RS256",
     noTimestamp: true,
   });
+
+  // const body = { EchoRequest: "furs" };
 
   const body = {
     token,
@@ -511,12 +524,6 @@ export async function bussinesPremises() {
     );
 
     const { token } = res.data;
-
-    console.log(
-      jwt.verify(token, appCert, {
-        algorithms: ["RS256"],
-      })
-    );
 
     return token;
   } catch (error) {

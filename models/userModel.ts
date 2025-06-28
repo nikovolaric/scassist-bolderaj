@@ -1,5 +1,4 @@
 import { model, Schema, Types } from "mongoose";
-import { isMobilePhone } from "validator";
 import bcrypt from "bcryptjs";
 import { isEmail } from "validator";
 import { createHash, randomBytes } from "crypto";
@@ -45,6 +44,7 @@ interface IUser {
   passwordResetExpires: Date | undefined;
   childAuthToken: string | undefined;
   childAuthTokenExpires: Date | undefined;
+  climbingAbility: number;
   active: Boolean;
   confirmMailToken: string | undefined;
   confirmMailTokenExpires: Date | undefined;
@@ -111,7 +111,7 @@ const userSchema = new Schema<IUser>(
         type: String,
         enum: ["admin", "user", "coach", "employee", "routeSetter"],
         required: [true, "User must have a role"],
-        default: "user",
+        default: ["user"],
       },
     ],
     canInvoice: {
@@ -138,21 +138,9 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
-    infoIsTrue: {
-      type: Boolean,
-      default: false,
-    },
     signedForNewsletter: {
       type: Boolean,
       default: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now(),
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
@@ -181,6 +169,11 @@ const userSchema = new Schema<IUser>(
     confirmMailToken: String,
     confirmMailTokenExpires: Date,
     additionalInfo: String,
+    climbingAbility: {
+      type: Number,
+      enum: [0, 1, 2, 3, 4, 5, 6, 7],
+      required: true,
+    },
     active: {
       type: Boolean,
       default: true,
@@ -190,6 +183,7 @@ const userSchema = new Schema<IUser>(
   {
     toObject: { virtuals: true },
     toJSON: { virtuals: true },
+    timestamps: true,
   }
 );
 
