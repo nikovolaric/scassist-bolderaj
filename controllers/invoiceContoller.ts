@@ -28,7 +28,7 @@ export const getAllInvoices = catchAsync(async function (
     dateToDone,
     article,
     label,
-    buyer,
+    buyerFullName,
     issuer,
     taxNo,
     ...query
@@ -98,8 +98,8 @@ export const getAllInvoices = catchAsync(async function (
     filter = { ...filter, "soldItems.item": { $in: articleNames } };
   }
 
-  if (buyer) {
-    const [firstName, ...lastNameParts] = (buyer as string).split(" ");
+  if (buyerFullName) {
+    const [firstName, ...lastNameParts] = (buyerFullName as string).split(" ");
     const lastName = lastNameParts.join(" ");
 
     const buyersObject = await User.find({

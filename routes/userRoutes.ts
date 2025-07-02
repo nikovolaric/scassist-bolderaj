@@ -22,6 +22,8 @@ import {
   createChild,
   forgotPassword,
   login,
+  loginAdmin,
+  loginReception,
   logout,
   protect,
   resetPassword,
@@ -37,6 +39,8 @@ const router = Router();
 
 router.post("/signup", signup);
 router.post("/login", login);
+router.post("/loginReception", loginReception);
+router.post("/loginAdmin", loginAdmin);
 
 router.post("/forgotpassword", forgotPassword);
 router.patch("/resetpassword/:token", resetPassword);
