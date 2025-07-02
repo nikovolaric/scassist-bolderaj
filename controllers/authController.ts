@@ -25,7 +25,7 @@ const createSendToken = function (
   res: Response
 ) {
   const token = signToken(user._id);
-  const cookieOptions = {
+  const cookieOptions: any = {
     expires: new Date(
       Date.now() +
         Number(process.env.JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
@@ -33,10 +33,12 @@ const createSendToken = function (
     httpOnly: true,
     sameSite: true,
     secure: true,
-    // domain: ".bolderaj.si",
   };
 
-  // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+  if (process.env.NODE_ENV === "production") {
+    cookieOptions.domain = ".bolderaj.si";
+  }
+
   res.cookie("jwt", token, cookieOptions);
 
   user.password = undefined;
@@ -225,6 +227,7 @@ export const createChild = catchAsync(async function (
       email: user.email,
       phoneNumber: user.phoneNumber,
     },
+    climbingAbility: req.body.climbingAbility,
     parent: user._id,
     role: ["user"],
   });
@@ -360,7 +363,13 @@ export const logout = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  res.clearCookie("jwt");
+  const cookieOptions: { domain?: string } = {};
+
+  if (process.env.NODE_ENV === "production") {
+    cookieOptions.domain = ".bolderaj.si";
+  }
+
+  res.clearCookie("jwt", cookieOptions);
 
   res.status(200).json({
     status: "success",

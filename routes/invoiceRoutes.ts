@@ -6,9 +6,11 @@ import {
   downloadInvoicePDF,
   downloadInvoices,
   downloadMyInvoice,
+  echoFiscal,
   getAllInvoices,
   getMyInvoices,
   myIssuedInvoices,
+  registerPremise,
 } from "../controllers/invoiceContoller";
 
 const router = Router();
@@ -30,5 +32,8 @@ router.get("/userinvoices/:id");
 router.post("/download", downloadInvoices);
 
 router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
+
+router.post("/premise", registerPremise);
+router.post("/fiscalecho", echoFiscal);
 
 export default router;

@@ -1,4 +1,4 @@
-import { Schema, type UpdateQuery, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
 interface IArticle {
   name: {

@@ -205,6 +205,8 @@ invoiceSchema.pre("save", async function (next) {
 });
 
 invoiceSchema.post("save", async function (doc, next) {
+  if (!doc.isNew) return next();
+
   await doc.populate({
     path: "buyer issuer",
     select:

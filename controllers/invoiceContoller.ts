@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import archiver from "archiver";
 import Invoice from "../models/invoiceModel";
 import catchAsync from "../utils/catchAsync";
-import { getAll } from "./handlerFactory";
 import {
+  bussinesPremises,
   connectWithFURS,
+  echoFurs,
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
 import AppError from "../utils/appError";
@@ -12,8 +13,147 @@ import Article from "../models/articleModel";
 import User from "../models/userModel";
 import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 import { Types } from "mongoose";
+import APIFeatures from "../utils/apiFeatures";
 
-export const getAllInvoices = getAll(Invoice);
+export const getAllInvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const {
+    q,
+    dateFrom,
+    dateTo,
+    dateFromDone,
+    dateToDone,
+    article,
+    label,
+    buyer,
+    issuer,
+    taxNo,
+    ...query
+  } = req.query;
+
+  let filter = {};
+
+  if (q && typeof q === "string") {
+    const parts = q.split(/[-\s]+/); // razdeli po "-" ali presledku
+    const [devicePart, invoicePart] = parts;
+
+    filter = {
+      ...filter,
+      $and: [
+        devicePart
+          ? { "invoiceData.deviceNo": { $regex: devicePart, $options: "i" } }
+          : {},
+        invoicePart
+          ? {
+              $expr: {
+                $regexMatch: {
+                  input: { $toString: "$invoiceData.invoiceNo" },
+                  regex: invoicePart,
+                  options: "i",
+                },
+              },
+            }
+          : {},
+      ],
+    };
+  }
+
+  if (dateFrom && dateTo) {
+    filter = {
+      ...filter,
+      invoiceDate: {
+        $gte: new Date(dateFrom as string),
+        $lte: new Date(dateTo as string),
+      },
+    };
+  }
+
+  if (dateFromDone && dateToDone) {
+    filter = {
+      ...filter,
+      serviceCompletionDate: {
+        $gte: new Date(dateFrom as string),
+        $lte: new Date(dateTo as string),
+      },
+    };
+  }
+
+  if (article) {
+    filter = {
+      ...filter,
+      "soldItems.item": { $regex: article, $options: "i" },
+    };
+  }
+
+  if (label) {
+    const matchingArticles = await Article.find({
+      label,
+    }).select("name");
+
+    const articleNames = matchingArticles.map((a) => a.name.sl);
+
+    filter = { ...filter, "soldItems.item": { $in: articleNames } };
+  }
+
+  if (buyer) {
+    const [firstName, ...lastNameParts] = (buyer as string).split(" ");
+    const lastName = lastNameParts.join(" ");
+
+    const buyersObject = await User.find({
+      firstName: { $regex: `^${firstName}`, $options: "i" },
+      lastName: { $regex: `^${lastName}`, $options: "i" },
+    });
+
+    const buyerArray = buyersObject.map((a) => a._id);
+
+    filter = { ...filter, buyer: { $in: buyerArray } };
+  }
+
+  if (issuer) {
+    const [firstName, ...lastNameParts] = (issuer as string).split(" ");
+    const lastName = lastNameParts.join(" ");
+
+    const issuersObject = await User.find({
+      firstName: { $regex: `^${firstName}`, $options: "i" },
+      lastName: { $regex: `^${lastName}`, $options: "i" },
+    });
+
+    const issuerArray = issuersObject.map((a) => a._id);
+
+    filter = { ...filter, issuer: { $in: issuerArray } };
+  }
+
+  if (taxNo) {
+    filter = {
+      ...filter,
+      "company.taxNumber": { $regex: taxNo, $options: "i" },
+    };
+  }
+
+  const features = new APIFeatures(
+    Invoice.find(filter).populate({
+      path: "buyer",
+      select: "firstName lastName",
+    }),
+    query
+  )
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const invoices = await features.query;
+
+  res.status(200).json({
+    status: "success",
+    results: invoices.length,
+    invoices,
+  });
+});
+
 export const createInvoice = catchAsync(async function (
   req: Request,
   res: Response,
@@ -147,19 +287,6 @@ export const myIssuedInvoices = catchAsync(async function (
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  // const invoices = await Invoice.find({
-  //   issuer: req.user.id,
-  //   invoiceDate: { $gte: startOfDay, $lte: endOfDay },
-  // })
-  //   .populate({
-  //     path: "buyer",
-  //     select: "firstName lastName email address city country",
-  //     match: {
-  //       lastName: { $regex: req.query.name, $options: "i" },
-  //     },
-  //   })
-  //   .sort({ invoiceDate: -1 });
-
   const invoices = await Invoice.aggregate([
     {
       $match: {
@@ -254,7 +381,7 @@ export const downloadMyInvoice = catchAsync(async function (
       : buyer
       ? buyer.postalCode
       : invoice.recepient.postalCode,
-    custumer_city: invoice.company.city
+    customer_city: invoice.company.city
       ? invoice.company.city
       : buyer
       ? buyer.city
@@ -455,5 +582,29 @@ export const confirmFiscalInvoiceLater = catchAsync(async function (
   res.status(200).json({
     status: "success",
     invoice,
+  });
+});
+
+export const echoFiscal = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const data = await echoFurs();
+
+  res.status(200).json({
+    status: "success",
+  });
+});
+
+export const registerPremise = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  await bussinesPremises();
+
+  res.status(200).json({
+    status: "success",
   });
 });

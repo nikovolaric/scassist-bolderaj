@@ -11,7 +11,6 @@ import {
   getAllVisibleArticlesUsers,
   getAllVisibleArticlesReception,
   getOneArticle,
-  registerPremise,
   updateArticle,
 } from "../controllers/articleController";
 import { protect, restrictTo } from "../controllers/authController";
@@ -28,15 +27,18 @@ router.get("/getgifts/:agegroup", getAllGiftArticles);
 router.post("/buyarticlesonline", checkPayment, buyArticlesOnline);
 router.post("/buyarticlesonline/:id", checkPayment, buyArticlesOnlineForChild);
 router.post("/buygiftonline", checkPayment, buyGiftOnline);
+router.get(
+  "/getvisiblereception",
+  restrictTo(["admin", "employee"]),
+  getAllVisibleArticlesReception
+);
 
 router.get("/:id", getOneArticle);
 router.use(restrictTo(["admin", "employee"]));
 
 router.post("/sellinperson/:id", protectCR, buyArticlesInPerson);
-router.get("/getvisiblereception", getAllVisibleArticlesReception);
 
 router.use(restrictTo(["admin"]));
-router.post("/premise", registerPremise);
 router.route("/").get(getAllArticles).post(createArticle);
 router.route("/:id").patch(updateArticle).delete(deleteArticle);
 

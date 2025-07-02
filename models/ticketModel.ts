@@ -59,10 +59,6 @@ const ticketSchema = new Schema<ITicket>(
       type: Schema.Types.ObjectId,
       ref: "Company",
     },
-    giftCode: {
-      type: String,
-      unique: true,
-    },
   },
   { timestamps: true }
 );

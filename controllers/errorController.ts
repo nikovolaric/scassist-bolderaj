@@ -84,7 +84,10 @@ function errorHandlerFunction(
   if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === "production") {
-    let error: any = { ...err, name: err.name };
+    let error: any = { ...err };
+    error.name = err.name;
+    error.message = err.message;
+    error.isOperational = err.isOperational;
 
     if (error.name === "CastError") error = handleCastErrorDB(error);
 

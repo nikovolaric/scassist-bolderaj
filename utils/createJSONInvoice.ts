@@ -136,7 +136,7 @@ export function calculateZOI(
   deviceID: string,
   invoiceAmount: number
 ): string {
-  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
+  const p12Buffer = readFileSync(process.env.MYCERT_PATH as string);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -215,7 +215,7 @@ export function calculateZOI(
 }
 
 export async function connectWithFURS(data: any) {
-  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
+  const p12Buffer = readFileSync(process.env.MYCERT_PATH as string);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -281,18 +281,18 @@ export async function connectWithFURS(data: any) {
   }
 
   const caCerts = [
-    readFileSync("./certs/si-trust-root.pem"),
-    readFileSync("./certs/sigov-ca2.xcert.pem"),
-    readFileSync("./certs/blagajne.fu.gov.si_2024.cer"),
+    readFileSync(process.env.SI_TRUST_PATH as string),
+    readFileSync(process.env.SIGOV_PATH as string),
+    readFileSync(process.env.BLAGAJNE_PATH as string),
   ];
 
-  const derBuffer = readFileSync("./certs/DavPotRac_2020.cer");
+  const derBuffer = readFileSync(process.env.DAVPOT_PATH as string);
   const base64Cert = derBuffer.toString("base64");
   const appCert = `-----BEGIN CERTIFICATE-----\n${base64Cert
     .match(/.{1,64}/g)!
     .join("\n")}\n-----END CERTIFICATE-----`;
 
-  const myCert = readFileSync("./certs/99163314-1.p12");
+  const myCert = readFileSync(process.env.MYCERT_PATH as string);
 
   const agent = new Agent({
     pfx: myCert,
@@ -350,6 +350,8 @@ export async function connectWithFURS(data: any) {
       algorithms: ["RS256"],
     });
 
+    console.log(jsonRes);
+
     const { UniqueInvoiceID: EOR } = jsonRes.InvoiceResponse;
 
     return EOR;
@@ -359,7 +361,7 @@ export async function connectWithFURS(data: any) {
 }
 
 export async function bussinesPremises() {
-  const p12Buffer = readFileSync(`./certs/99163314-1.p12`);
+  const p12Buffer = readFileSync(process.env.MYCERT_PATH as string);
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
   const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
   const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
@@ -425,18 +427,18 @@ export async function bussinesPremises() {
   }
 
   const caCerts = [
-    readFileSync("./certs/si-trust-root.pem"),
-    readFileSync("./certs/sigov-ca2.xcert.pem"),
-    readFileSync("./certs/blagajne.fu.gov.si_2024.cer"),
+    readFileSync(process.env.SI_TRUST_PATH as string),
+    readFileSync(process.env.SIGOV_PATH as string),
+    readFileSync(process.env.BLAGAJNE_PATH as string),
   ];
-  const appCert = readFileSync("./certs/DavPotRac_2020.cer");
-  const myCert = readFileSync("./certs/99163314-1.p12");
+  const appCert = readFileSync(process.env.DAVPOT_PATH as string);
+  const myCert = readFileSync(process.env.MYCERT_PATH as string);
 
   const agent = new Agent({
     pfx: myCert,
     passphrase: process.env.CERTIFICATE_PASSWORD,
     ca: caCerts,
-    rejectUnauthorized: true, // V produkciji nastavi na `true`
+    rejectUnauthorized: true,
     minVersion: "TLSv1.2",
   });
 
@@ -526,6 +528,130 @@ export async function bussinesPremises() {
     const { token } = res.data;
 
     return token;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function echoFurs() {
+  const p12Buffer = readFileSync(process.env.MYCERT_PATH as string);
+  const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
+  const pkcs12Asn1 = forge.asn1.fromDer(p12Der);
+  const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
+    pkcs12Asn1,
+    false,
+    process.env.CERTIFICATE_PASSWORD
+  ); // 🔑 Geslo potrdila
+  const p12Asn1 = forge.asn1.fromDer(p12Der);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(
+    p12Asn1,
+    process.env.CERTIFICATE_PASSWORD
+  );
+  const bags = p12.getBags({ bagType: forge.pki.oids.certBag });
+
+  const cert = bags[forge.pki.oids.certBag]![0];
+
+  // Serial number
+  function hexToDecimal(hex: string): string {
+    return BigInt(`0x${hex}`).toString(10);
+  }
+
+  const hexValue = cert["cert"]!["serialNumber"];
+  const serial = hexToDecimal(hexValue);
+
+  let map: any = {};
+  let key: string;
+
+  for (let sci = 0; sci < pkcs12.safeContents.length; ++sci) {
+    let safeContents = pkcs12.safeContents[sci];
+
+    for (let sbi = 0; sbi < safeContents.safeBags.length; ++sbi) {
+      let safeBag = safeContents.safeBags[sbi];
+      let localKeyId = null;
+
+      if (safeBag.attributes.localKeyId) {
+        localKeyId = forge.util.bytesToHex(safeBag.attributes.localKeyId[0]);
+
+        if (!(localKeyId in map)) {
+          map[localKeyId] = {
+            privateKey: null,
+            certChain: [],
+          };
+        }
+      } else {
+        continue;
+      }
+
+      if (safeBag.type === forge.pki.oids.pkcs8ShroudedKeyBag) {
+        map[localKeyId].privateKey = safeBag.key;
+      } else if (safeBag.type === forge.pki.oids.certBag) {
+        map[localKeyId].certChain.push(safeBag.cert);
+      }
+    }
+  }
+
+  for (let localKeyId in map) {
+    let entry = map[localKeyId];
+
+    if (entry.privateKey) {
+      let privateKeyP12Pem = forge.pki.privateKeyToPem(entry.privateKey);
+      key = privateKeyP12Pem;
+    }
+  }
+
+  const caCerts = [
+    readFileSync(process.env.SI_TRUST_PATH as string),
+    readFileSync(process.env.SIGOV_PATH as string),
+    readFileSync(process.env.BLAGAJNE_PATH as string),
+  ];
+  const appCert = readFileSync(process.env.DAVPOT_PATH as string);
+  const myCert = readFileSync(process.env.MYCERT_PATH as string);
+
+  const agent = new Agent({
+    pfx: myCert,
+    passphrase: process.env.CERTIFICATE_PASSWORD,
+    ca: caCerts,
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2",
+  });
+
+  const header = {
+    alg: "RS256",
+    issuer_name: "",
+    subject_name: "",
+    serial,
+  };
+
+  const certCNs = {
+    issuer_name: cert["cert"]!["issuer"],
+    subject_name: cert["cert"]!["subject"],
+  };
+  const cnTypes = ["subject_name", "issuer_name"];
+
+  cnTypes.forEach((t) => {
+    //@ts-ignore
+    const attributesList = certCNs[t].attributes.map((attr: any) => {
+      const tName = attr.shortName ? "shortName" : "name";
+      return `${attr[tName]}=${attr.value}`;
+    });
+
+    //@ts-ignore
+    header[t] = attributesList.join(",");
+  });
+
+  const body = { EchoRequest: "furs" };
+
+  try {
+    const res = await axios.post(`${process.env.FURS_URL!}/echo`, body, {
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      httpsAgent: agent,
+    });
+
+    const data = res.data;
+
+    return data;
   } catch (error) {
     console.log(error);
   }

@@ -9,6 +9,7 @@ import {
   downloadMyPreInvoice,
   downloadPreInvoiceFromClass,
   downloadPreInvoiceReception,
+  getAllPreinvoices,
   getMyUnpaidPreInvoices,
   getUserUnpaidPreinvoices,
 } from "../controllers/preInvoiceController";
@@ -33,7 +34,7 @@ router.post(
 
 router.use(restrictTo(["admin"]));
 
-router.route("/").post(createPreInvoice);
+router.route("/").post(createPreInvoice).get(getAllPreinvoices);
 router.route("/:id").delete(deletePreInvoice);
 router.post("/createinvoice/:id", createInvoiceFromPreInvoice);
 

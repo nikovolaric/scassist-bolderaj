@@ -12,8 +12,50 @@ import {
 } from "../utils/createJSONInvoice";
 import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
 import { deleteOne } from "./handlerFactory";
+import APIFeatures from "../utils/apiFeatures";
 
 export const deletePreInvoice = deleteOne(PreInvoice);
+
+export const getAllPreinvoices = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { q, ...query } = req.query;
+
+  let filter = {};
+
+  if (q && typeof q === "string") {
+    const regex = new RegExp(q, "i");
+
+    filter = {
+      $or: [
+        { reference: { $regex: regex } },
+        { "recepient.name": { $regex: regex } },
+      ],
+    };
+  }
+
+  const features = new APIFeatures(
+    PreInvoice.find(filter).populate({
+      path: "buyer",
+      select: "firstName lastName",
+    }),
+    query
+  )
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const preinvoices = await features.query;
+
+  res.status(200).json({
+    status: "success",
+    results: preinvoices.length,
+    preinvoices,
+  });
+});
 
 export const createPreInvoice = catchAsync(async function (
   req: Request,

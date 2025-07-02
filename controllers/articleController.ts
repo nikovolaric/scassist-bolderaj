@@ -186,25 +186,24 @@ export const buyArticlesOnline = catchAsync(async function (
     if (el.article.label === "V") {
       let tickets: ObjectId[] = [];
 
-      await Promise.all(
-        Array.from({ length: el.quantity }).map(async () => {
-          const data = {
-            name: el.article.name,
-            type: el.article.type,
-            duration: el.article.duration,
-            visits: el.article.visits,
-            morning: el.article.morning,
-            validUntil:
-              Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration,
-            user: req.user.id,
-          };
-          const ticket = await Ticket.create(data);
+      for (let i = 0; i < el.quantity; i++) {
+        const data = {
+          name: el.article.name,
+          type: el.article.type,
+          duration: el.article.duration,
+          visits: el.article.visits ?? undefined,
+          morning: el.article.morning,
+          validUntil:
+            Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration,
+          user: req.user.id,
+        };
 
-          if (!ticket) return next(new AppError("Something went wrong!", 500));
+        const ticket = await Ticket.create(data);
 
-          tickets = [...tickets, ticket.id];
-        })
-      );
+        if (!ticket) return next(new AppError("Something went wrong!", 500));
+
+        tickets = [...tickets, ticket.id];
+      }
 
       const unusedTickets = [...user.unusedTickets, ...tickets];
       await User.findByIdAndUpdate(user.id, { unusedTickets: unusedTickets });
@@ -263,7 +262,7 @@ export const buyArticlesOnline = catchAsync(async function (
       deviceNo: invoiceData.electronicDeviceID,
     },
     soldItems,
-    paymentMethod: "online",
+    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
     ZOI,
     EOR,
   };
@@ -506,7 +505,7 @@ export const buyGiftOnline = catchAsync(async function (
       deviceNo: invoiceData.electronicDeviceID,
     },
     soldItems,
-    paymentMethod: "online",
+    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
     ZOI,
     EOR,
   };
@@ -791,17 +790,5 @@ export const buyArticlesInPerson = catchAsync(async function (
   res.status(200).json({
     status: "success",
     cart,
-  });
-});
-
-export const registerPremise = catchAsync(async function (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  await bussinesPremises();
-
-  res.status(200).json({
-    status: "success",
   });
 });

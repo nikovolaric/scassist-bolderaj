@@ -23,13 +23,17 @@ app.use(express.json({ limit: "10kb" }));
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://app.bolderaj.si"],
+    origin: [
+      "http://localhost:5173",
+      "https://app.bolderaj.si",
+      "https://reception.bolderaj.si",
+      "https://admin.bolderaj.si",
+    ],
     credentials: true,
     exposedHeaders: ["Content-Disposition"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
 app.use(cookieParser());
 
 app.use("/api/v1/users", userRouter);
