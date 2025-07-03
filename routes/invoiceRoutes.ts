@@ -9,6 +9,7 @@ import {
   echoFiscal,
   getAllInvoices,
   getMyInvoices,
+  issueEmptyInvoice,
   myIssuedInvoices,
   registerPremise,
 } from "../controllers/invoiceContoller";
@@ -35,5 +36,6 @@ router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
 
 router.post("/premise", registerPremise);
 router.post("/fiscalecho", echoFiscal);
+router.post("/issueempty", issueEmptyInvoice);
 
 export default router;

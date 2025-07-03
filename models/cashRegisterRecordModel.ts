@@ -10,6 +10,7 @@ interface ICashRegisterRecord {
   logoutTime: Date;
   cashBalanceDifference: number;
   creditCardBalanceDifference: number;
+  hoursWorked: number;
 }
 
 const cashRegisterRecordSchema = new Schema<ICashRegisterRecord>(
@@ -32,6 +33,7 @@ const cashRegisterRecordSchema = new Schema<ICashRegisterRecord>(
     logoutTime: Date,
     cashBalanceDifference: Number,
     creditCardBalanceDifference: Number,
+    hoursWorked: Number,
   },
   { timestamps: true }
 );
@@ -52,6 +54,11 @@ cashRegisterRecordSchema.pre("save", function (next) {
     (this.endCreditCardBalance - this.startCreditCardBalance).toFixed(2)
   );
 
+  if (this.logoutTime && this.loginTime) {
+    this.hoursWorked =
+      (this.logoutTime.getTime() - this.loginTime.getTime()) / (1000 * 60 * 60);
+  }
+  
   next();
 });
 

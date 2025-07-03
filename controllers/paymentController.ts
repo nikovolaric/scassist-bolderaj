@@ -12,19 +12,18 @@ export const createSession = catchAsync(async function (
   if (!amount) return next(new AppError("Please provide the amount", 400));
 
   const params = new URLSearchParams({
-    entityId: "8ac9a4c89662aaee019666c30a041667",
+    entityId: process.env.HOBEX_ENTITYID as string,
     amount: amount,
     currency: "EUR",
     paymentType: "DB",
     integrity: "true",
   });
 
-  const result = await fetch(`https://eu-prod.oppwa.com/v1/checkouts`, {
+  const result = await fetch(`${process.env.HOBEX_URL}/v1/checkouts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Authorization:
-        "Bearer OGFjOWE0Yzg5NjYyYWFlZTAxOTY2NmMxMGVlOTE2NGR8QGQ0b1dnS2IrRW9YJTVyP049I3U=",
+      Authorization: `Bearer ${process.env.HOBEX_BEARER as string}`,
     },
     body: params,
   });
@@ -49,12 +48,13 @@ export const checkPayment = catchAsync(async function (
   }
 
   const paymentRes = await fetch(
-    `https://eu-prod.oppwa.com/v1/checkouts/${req.body.checkoutId}/payment?entityId=8ac9a4c89662aaee019666c30a041667`,
+    `${process.env.HOBEX_URL}v1/checkouts/${
+      req.body.checkoutId
+    }/payment?entityId=${process.env.HOBEX_ENTITYID as string}`,
     {
       method: "GET",
       headers: {
-        Authorization:
-          "Bearer OGFjOWE0Yzg5NjYyYWFlZTAxOTY2NmMxMGVlOTE2NGR8QGQ0b1dnS2IrRW9YJTVyP049I3U=",
+        Authorization: `Bearer ${process.env.HOBEX_BEARER as string}`,
       },
     }
   );

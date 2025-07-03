@@ -172,11 +172,13 @@ export const sendCode = async function (options: any) {
     to: options.email,
     subject: "Darilni bon",
     html,
-    attachment: {
-      filename: "Darilni bon - Bolderaj",
-      path: "../templates/assets/darilni-bon.png",
-      contentType: "image/png",
-    },
+    attachments: [
+      {
+        filename: "Darilni bon - Bolderaj.png",
+        path: "https://bolderaj.s3.eu-central-1.amazonaws.com/darilni-bon.png",
+        contentType: "image/png",
+      },
+    ],
   };
 
   //3. Actually send the email

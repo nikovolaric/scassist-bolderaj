@@ -11,7 +11,7 @@ import Invoice from "../models/invoiceModel";
 import Gift from "../models/giftModel";
 import { generateRandomString } from "../utils/helpers";
 import Ticket from "../models/ticketModel";
-import { sendCode } from "../utils/email";
+import { sendCode, sendInvoice } from "../utils/email";
 import {
   bussinesPremises,
   connectWithFURS,
@@ -194,7 +194,8 @@ export const buyArticlesOnline = catchAsync(async function (
           visits: el.article.visits ?? undefined,
           morning: el.article.morning,
           validUntil:
-            Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration,
+            Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration ||
+            365,
           user: req.user.id,
         };
 
@@ -267,7 +268,53 @@ export const buyArticlesOnline = catchAsync(async function (
     EOR,
   };
 
-  await Invoice.create(invoiceDataToSave);
+  const invoice = await Invoice.create(invoiceDataToSave);
+
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? buyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? buyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",
@@ -319,25 +366,27 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     if (el.article.label === "V") {
       let tickets: ObjectId[] = [];
 
-      await Promise.all(
-        Array.from({ length: el.quantity }).map(async () => {
-          const data = {
-            name: el.article.name,
-            type: el.article.type,
-            duration: el.article.duration,
-            visits: el.article.visits,
-            user: user.id,
-          };
-          const ticket = await Ticket.create(data);
+      for (let i = 0; i < el.quantity; i++) {
+        const data = {
+          name: el.article.name,
+          type: el.article.type,
+          duration: el.article.duration,
+          visits: el.article.visits ?? undefined,
+          morning: el.article.morning,
+          validUntil:
+            Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration ||
+            365,
+          user: user.id,
+        };
+        const ticket = await Ticket.create(data);
 
-          if (!ticket) return next(new AppError("Something went wrong!", 500));
+        if (!ticket) return next(new AppError("Something went wrong!", 500));
 
-          tickets = [...tickets, ticket.id];
-        })
-      );
+        tickets = [...tickets, ticket.id];
+      }
 
-      user.unusedTickets = [...user.unusedTickets, ...tickets];
-      await user.save({ validateBeforeSave: false });
+      const unusedTickets = [...user.unusedTickets, ...tickets];
+      await User.findByIdAndUpdate(user.id, { unusedTickets: unusedTickets });
     }
   }
 
@@ -378,7 +427,6 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
       amountWithTax: el.article.priceDDV,
-
       quantity: el.quantity,
       item: el.article.name.sl,
     };
@@ -394,12 +442,58 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
       deviceNo: invoiceData.electronicDeviceID,
     },
     soldItems,
-    paymentMethod: "online",
+    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
     ZOI,
     EOR,
   };
 
-  await Invoice.create(invoiceDataToSave);
+  const invoice = await Invoice.create(invoiceDataToSave);
+
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? buyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? buyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",
@@ -490,6 +584,7 @@ export const buyGiftOnline = catchAsync(async function (
     const item = {
       taxRate: el.article.taxRate,
       taxableAmount: el.article.price.toFixed(2),
+      amountWithTax: el.article.priceDDV,
       quantity: el.quantity,
       item: `${el.article.name.sl} - darilni bon`,
     };
@@ -510,7 +605,53 @@ export const buyGiftOnline = catchAsync(async function (
     EOR,
   };
 
-  await Invoice.create(invoiceDataToSave);
+  const invoice = await Invoice.create(invoiceDataToSave);
+
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? buyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? buyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",
@@ -785,7 +926,53 @@ export const buyArticlesInPerson = catchAsync(async function (
     EOR,
   };
 
-  await Invoice.create(invoiceDataToSave);
+  const invoice = await Invoice.create(invoiceDataToSave);
+
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? buyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? buyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? buyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? buyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",

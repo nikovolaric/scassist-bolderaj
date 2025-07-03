@@ -22,16 +22,28 @@ const signToken = function (id: string) {
 const createSendToken = function (
   cashRegisterRecord: { _id: any },
   statusCode: number,
-  res: Response
+  res: Response,
+  cookieName: string
 ) {
   const token = signToken(cashRegisterRecord._id);
-  const cookieOptions = {
+  const cookieOptions: {
+    expires: Date;
+    httpOnly: boolean;
+    sameSite: boolean;
+    secure?: boolean;
+    domain?: string;
+  } = {
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     httpOnly: true,
+    sameSite: true,
   };
 
-  // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
-  res.cookie("cashRegister", token, cookieOptions);
+  if (process.env.NODE_ENV === "production") {
+    cookieOptions.secure = true;
+    cookieOptions.domain = ".bolderaj.si";
+  }
+
+  res.cookie(cookieName, token, cookieOptions);
 
   res.status(statusCode).json({
     status: "success",
@@ -65,7 +77,20 @@ export const startCashRegisterRecord = catchAsync(async function (
     cashRegisterRecordData
   );
 
-  createSendToken(cashRegisterRecord, 201, res);
+  const cr1 = req.cookies.cr1;
+  const cr2 = req.cookies.cr2;
+  const cr3 = req.cookies.cr3;
+  const cr4 = req.cookies.cr4;
+
+  function generateCookieName() {
+    if (!cr1) return "cr1";
+    if (!cr2) return "cr2";
+    if (!cr3) return "cr3";
+    if (!cr4) return "cr4";
+    else return "cr5";
+  }
+
+  createSendToken(cashRegisterRecord, 201, res, generateCookieName());
 });
 
 export const getCashRegisterRecord = catchAsync(async function (
@@ -73,13 +98,32 @@ export const getCashRegisterRecord = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const cashRegisterRecord = req.cashRegister;
+  const cookieNames = ["cr1", "cr2", "cr3", "cr4", "cr5"];
+  let activeCashRegisterRecord = null;
 
-  if (!cashRegisterRecord) return next(new AppError("CR does not exist", 404));
+  for (const cookieName of cookieNames) {
+    const id = req.cookies[cookieName];
+    if (!id) continue;
+
+    const cr = await CashRegisterRecord.findOne({
+      _id: id,
+      user: req.user.id,
+      logoutTime: { $exists: false }, // aktivna izmena
+    });
+
+    if (cr) {
+      activeCashRegisterRecord = cr;
+      break;
+    }
+  }
+
+  if (!activeCashRegisterRecord) {
+    return next(new AppError("No active cash register record found", 404));
+  }
 
   res.status(200).json({
     status: "success",
-    cashRegisterRecord,
+    cashRegisterRecord: activeCashRegisterRecord,
   });
 });
 
@@ -88,30 +132,36 @@ export const endCashRegisterRecord = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const cashRegisterRecordJWT = req.cookies.cashRegister;
+  const cookieNames = ["cr1", "cr2", "cr3", "cr4", "cr5"];
+  let matchedCookieName: string | null = null;
+  let cashRegisterRecord = null;
 
-  const decoded: any = verify(
-    cashRegisterRecordJWT,
-    process.env.JWT_SECRET_CASHREGISTER!
-  );
+  for (const name of cookieNames) {
+    const id = req.cookies[name];
+    if (!id) continue;
 
-  const cashRegisterRecord = await CashRegisterRecord.findById(decoded.id);
+    const record = await CashRegisterRecord.findById(id);
+    if (record && record.user.toString() === req.user.id) {
+      matchedCookieName = name;
+      cashRegisterRecord = record;
+      break;
+    }
+  }
 
   if (!cashRegisterRecord)
-    return next(new AppError("Cash register record not found", 404));
+    return next(new AppError("No active cash register record found", 404));
 
-  if (req.user.id !== cashRegisterRecord.user.toString())
-    return next(
-      new AppError("You are not allowed to end this cash register record", 403)
-    );
-
+  // Posodobi podatke
   cashRegisterRecord.endCashBalance = req.body.endCashBalance;
   cashRegisterRecord.endCreditCardBalance = req.body.endCreditCardBalance;
   cashRegisterRecord.logoutTime = new Date();
 
   await cashRegisterRecord.save({ validateBeforeSave: false });
 
-  res.clearCookie("cashRegister");
+  // Počisti samo ustrezni cookie
+  if (matchedCookieName) {
+    res.clearCookie(matchedCookieName);
+  }
 
   res.status(200).json({
     status: "success",
@@ -124,31 +174,35 @@ export const protectCR = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const token = req.cookies.cashRegister;
+  const cookieNames = ["cr1", "cr2", "cr3", "cr4", "cr5"];
+  let currentCR = null;
 
-  if (!token) {
+  for (const name of cookieNames) {
+    const token = req.cookies[name];
+    if (!token) continue;
+
+    try {
+      const decoded: any = verify(token, process.env.JWT_SECRET_CASHREGISTER!);
+      const cr = await CashRegisterRecord.findById(decoded.id);
+
+      if (cr && cr.user.toString() === req.user.id) {
+        currentCR = cr;
+        break;
+      }
+    } catch (err) {
+      // Ignore invalid tokens
+      continue;
+    }
+  }
+
+  if (!currentCR) {
     return next(
       new AppError(
-        "You are not logged in to cashregister. Please log in to get access!",
+        "You are not logged in to any active cash register record.",
         401
       )
     );
   }
-  const secret: any = process.env.JWT_SECRET_CASHREGISTER;
-
-  const decoded: any = verify(token, secret);
-
-  const currentCR = await CashRegisterRecord.findById(decoded.id);
-
-  if (!currentCR) {
-    res.cookie("cashRegister", "", {
-      expires: new Date(Date.now() + 1000),
-      httpOnly: true,
-    });
-    return next(new AppError("The user no longer exists", 401));
-  }
-
   req.cashRegister = currentCR;
-
   next();
 });

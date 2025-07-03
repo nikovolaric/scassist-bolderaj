@@ -99,6 +99,7 @@ function errorHandlerFunction(
 
     if (error.name === "TokenExpiredError") error = handleJWTExpiredError();
 
+    console.log(error);
     sendErrorProd(error, res);
   }
 }

@@ -27,7 +27,7 @@ export function generateGiftCodeMail(firstName: string, code: string) {
         <mj-text align="left" color="#797e82" font-size="13px" line-height="22px" padding-bottom="0px" padding-left="50px" padding-right="50px" padding-top="0px" padding="0px 25px 0px 25px" font-family="SuorceSans, sans-serif">
           <p style="margin: 10px 0; text-align: center;">V priponki najdeš darilni bon v elektronski obliki, ki ga lahko natisneš in izpolniš.</p>
           <p style="margin: 10px 0; text-align: center;">Darilni bon velja eno leto od dneva nakupa.</p>
-          <p style="margin: 10px 0; text-align: center;">Več o pogojih vnovčitve darilnih bonov si lahko prebereš na <a href="${process.env.FRONTEND_URL}/terms-conditions">povezavi.</a></p>
+          <p style="margin: 10px 0; text-align: center;">Več o pogojih vnovčitve darilnih bonov si lahko prebereš na <a href="https://bolderaj.si/pravila-in-pogoji-uporabe-plezalnega-centra-bolderaj/">povezavi.</a></p>
           <p style="margin: 10px 0; text-align: center;">Hvala za vaš nakup!</p>
         </mj-text>
       </mj-column>

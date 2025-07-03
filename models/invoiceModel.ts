@@ -204,56 +204,6 @@ invoiceSchema.pre("save", async function (next) {
   next();
 });
 
-invoiceSchema.post("save", async function (doc, next) {
-  if (!doc.isNew) return next();
-
-  await doc.populate({
-    path: "buyer issuer",
-    select:
-      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
-  });
-
-  const buyer = doc.buyer as any;
-
-  const mailOptions = {
-    email: doc.buyer ? buyer.email : doc.recepient.email,
-    invoiceNumber: `${doc.invoiceData.businessPremises}-${doc.invoiceData.deviceNo}-${doc.invoiceData.invoiceNo}-${doc.invoiceData.year}`,
-    name: buyer ? `${buyer.firstName} ${buyer.lastName}` : doc.recepient.name,
-    companyName: doc.company.name,
-    taxNumber: doc.company.taxNumber,
-    address: doc.company.address
-      ? doc.company.address
-      : buyer
-      ? buyer.address
-      : doc.recepient.address,
-    postalCode: doc.company.postalCode
-      ? doc.company.postalCode
-      : buyer
-      ? buyer.postalCode
-      : doc.recepient.postalCode,
-    city: doc.company.city
-      ? doc.company.city
-      : buyer
-      ? buyer.city
-      : doc.recepient.city,
-    invoiceDate: doc.invoiceDate,
-    invoiceCompletionDate: doc.serviceCompletionDate,
-    reference: doc.reference,
-    cashier: doc.issuerNickname ? doc.issuerNickname : "Default",
-    dueDate: doc.paymentDueDate,
-    paymentMethod: doc.paymentMethod,
-    items: doc.soldItems,
-    totalAmount: doc.totalAmount,
-    totalTaxAmount: doc.totalAmount - doc.totalTaxableAmount,
-    EOR: doc.EOR,
-    ZOI: doc.ZOI,
-  };
-
-  await sendInvoice(mailOptions);
-
-  next();
-});
-
 const Invoice = model<IInvoice>("Invoice", invoiceSchema);
 
 export default Invoice;

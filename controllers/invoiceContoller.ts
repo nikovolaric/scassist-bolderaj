@@ -227,7 +227,8 @@ export const createInvoice = catchAsync(async function (
   });
 
   const invoiceDataToSave = {
-    paymentDueDate: new Date(),
+    paymentDueDate: req.body.paymentDueDate || new Date(),
+    serviceCompletionDate: req.body.serviceCompletionDate || new Date(),
     buyer: buyer?.id,
     recepient: req.body.recepient,
     invoiceData: {
@@ -236,7 +237,7 @@ export const createInvoice = catchAsync(async function (
       invoiceNo: invoiceData.invoiceNumber,
     },
     soldItems,
-    paymentMethod: "nakazilo",
+    paymentMethod: req.body.paymanetMethod,
     ZOI,
     EOR,
   };
@@ -364,7 +365,7 @@ export const downloadMyInvoice = catchAsync(async function (
   const invoiceData = {
     invoice_number: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     invoice_date: invoice.invoiceDate,
-    completed_date: invoice.invoiceDate,
+    completed_date: invoice.serviceCompletionDate,
     company_name: buyer ? buyer.companyName : "",
     issuer: issuer ? issuer.invoiceNickname : "Default",
     reference_number: invoice.reference,
@@ -422,7 +423,7 @@ export const downloadInvoicePDF = catchAsync(async function (
   const invoiceData = {
     invoice_number: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     invoice_date: invoice.invoiceDate,
-    completed_date: invoice.invoiceDate,
+    completed_date: invoice.serviceCompletionDate,
     company_name: buyer ? buyer.companyName : "",
     issuer: issuer ? issuer.invoiceNickname : "Default",
     reference_number: invoice.reference,
@@ -488,7 +489,7 @@ export const downloadInvoices = catchAsync(async function (
       const invoiceData = {
         invoice_number: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
         invoice_date: invoice.invoiceDate,
-        completed_date: invoice.invoiceDate,
+        completed_date: invoice.serviceCompletionDate,
         company_name: buyer ? buyer.companyName : "",
         issuer: issuer ? issuer.invoiceNickname : "Default",
         reference_number: invoice.reference,
@@ -594,6 +595,7 @@ export const echoFiscal = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
+    data,
   });
 });
 
@@ -606,5 +608,63 @@ export const registerPremise = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
+  });
+});
+
+export const issueEmptyInvoice = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // const taxes = [
+  //   {
+  //     taxRate: 0,
+  //     taxableAmount: 0,
+  //     taxAmount: 0,
+  //   },
+  // ];
+
+  // const invoiceData = {
+  //   dateTime: new Date(),
+  //   issueDateTime: new Date(),
+  //   numberingStructure: "C",
+  //   businessPremiseID: "B1",
+  //   electronicDeviceID: "BLAGO",
+  //   invoiceNumber: 36,
+  //   invoiceAmount: 0,
+  //   paymentAmount: 0,
+  //   taxes,
+  //   operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+  // };
+
+  // const { JSONInvoice, ZOI } = generateJSONInvoice(invoiceData);
+
+  // const EOR = await connectWithFURS(JSONInvoice);
+
+  // const invoiceDataToSave = {
+  //   paymentDueDate: new Date(),
+  //   buyer: "6842ac661417193595a3126f",
+  //   invoiceData: {
+  //     businessPremises: invoiceData.businessPremiseID,
+  //     deviceNo: invoiceData.electronicDeviceID,
+  //     invoiceNo: 36,
+  //   },
+  //   soldItems: [],
+  //   paymentMethod: "online",
+  //   ZOI,
+  //   EOR,
+  // };
+
+  // await Invoice.create(invoiceDataToSave);
+
+  const invoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "B1",
+  }).sort({
+    "invoiceData.invoiceNo": -1,
+  });
+
+  res.status(200).json({
+    status: "success",
+    invoice,
   });
 });
