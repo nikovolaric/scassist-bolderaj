@@ -29,6 +29,7 @@ interface InvoiceDataStorno {
   businessPremiseID: string;
   electronicDeviceIDNew: string;
   invoiceNumberNew: number;
+  businessPremiseIDRef: string;
   electronicDeviceIDRef: string;
   invoiceNumberRef: number;
   invoiceAmount: number;
@@ -36,7 +37,6 @@ interface InvoiceDataStorno {
   taxes: any[];
   operatorTaxNumber: string;
   costumerVatNumber?: string;
-  protectedId?: string;
 }
 
 export function generateJSONInvoice(invoiceData: InvoiceData) {
@@ -126,7 +126,7 @@ export function generateJSONInvoice(invoiceData: InvoiceData) {
         // DateTime: invoiceData.dateTime.toISOString().split(".")[0],
         NumberingStructure: invoiceData.numberingStructure,
         InvoiceIdentifier: {
-          BusinessPremiseID: "B1",
+          BusinessPremiseID: process.env.BUSINESSID,
           ElectronicDeviceID: invoiceData.electronicDeviceID,
           InvoiceNumber: invoiceData.invoiceNumber.toString(),
         },
@@ -156,8 +156,6 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
     invoiceData.invoiceAmount
   );
 
-  console.log(invoiceData);
-
   const highTaxes = invoiceData.taxes.filter((tax) => tax.taxRate === 22);
   const lowTaxes = invoiceData.taxes.filter((tax) => tax.taxRate === 9.5);
 
@@ -182,8 +180,8 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
       const VAT = [
         {
           TaxRate: parseFloat((22.0).toFixed(2)),
-          TaxableAmount: highTaxTaxableAmount,
-          TaxAmount: highTaxAmount,
+          TaxableAmount: -highTaxTaxableAmount,
+          TaxAmount: -highTaxAmount,
         },
       ];
 
@@ -194,8 +192,8 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
       const VAT = [
         {
           TaxRate: parseFloat((9.5).toFixed(2)),
-          TaxableAmount: lowTaxTaxableAmount,
-          TaxAmount: lowTaxAmount,
+          TaxableAmount: -lowTaxTaxableAmount,
+          TaxAmount: -lowTaxAmount,
         },
       ];
 
@@ -206,13 +204,13 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
       const VAT = [
         {
           TaxRate: parseFloat((9.5).toFixed(2)),
-          TaxableAmount: lowTaxTaxableAmount,
-          TaxAmount: lowTaxAmount,
+          TaxableAmount: -lowTaxTaxableAmount,
+          TaxAmount: -lowTaxAmount,
         },
         {
           TaxRate: parseFloat((22.0).toFixed(2)),
-          TaxableAmount: highTaxTaxableAmount,
-          TaxAmount: highTaxAmount,
+          TaxableAmount: -highTaxTaxableAmount,
+          TaxAmount: -highTaxAmount,
         },
       ];
 
@@ -232,23 +230,11 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
           invoiceData.issueDateTime,
           "yyyy-MM-dd'T'HH:mm:ss"
         ),
-        // DateTime: invoiceData.dateTime.toISOString().split(".")[0],
         NumberingStructure: invoiceData.numberingStructure,
         InvoiceIdentifier: {
-          BusinessPremiseID: "B1",
+          BusinessPremiseID: process.env.BUSINESSID,
           ElectronicDeviceID: invoiceData.electronicDeviceIDNew,
           InvoiceNumber: invoiceData.invoiceNumberNew.toString(),
-        },
-        ReferenceInvoice: {
-          ReferenceInvoiceIdentifier: {
-            BusinessPremiseID: "B1",
-            ElectronicDeviceID: invoiceData.electronicDeviceIDRef,
-            InvoiceNumber: invoiceData.invoiceNumberRef.toString(),
-          },
-          ReferenceInvoiceIssueDateTime: format(
-            invoiceData.issueDateTimeRef,
-            "yyyy-MM-dd'T'HH:mm:ss"
-          ),
         },
         InvoiceAmount: -invoiceData.invoiceAmount,
         PaymentAmount: -invoiceData.paymentAmount,
@@ -257,14 +243,14 @@ export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
             VAT: generateTaxes(),
           },
         ],
-        SpecialNotes: `Storno računa B1-${invoiceData.electronicDeviceIDRef}-${
-          invoiceData.invoiceNumberRef
-        } z dne ${format(
+        SpecialNotes: `Storno računa ${invoiceData.businessPremiseIDRef}-${
+          invoiceData.electronicDeviceIDRef
+        }-${invoiceData.invoiceNumberRef} z dne ${format(
           invoiceData.issueDateTimeRef,
           "yyyy-MM-dd'T'HH:mm:ss"
         )}`,
         OperatorTaxNumber: Number(invoiceData.operatorTaxNumber),
-        ProtectedID: invoiceData.protectedId ?? ZOI,
+        ProtectedID: ZOI,
       },
     },
   };

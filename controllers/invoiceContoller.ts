@@ -201,7 +201,7 @@ export const createInvoice = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
@@ -558,9 +558,14 @@ export const stornoInvoice = catchAsync(async function (
 
   const lastInvoice = await Invoice.findOne({
     "invoiceData.deviceNo": invoice.invoiceData.deviceNo,
-  }).sort({
-    "invoiceData.invoiceNo": -1,
-  });
+  })
+    .sort({
+      "invoiceData.invoiceNo": -1,
+    })
+    .populate({
+      path: "buyer",
+      select: "firstName lastName address postalCode city",
+    });
 
   const taxes = invoice.soldItems.map((el) => {
     const tax = {
@@ -577,26 +582,64 @@ export const stornoInvoice = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceIDNew: "BLAGO",
     invoiceNumberNew: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
     electronicDeviceIDRef: invoice.invoiceData.deviceNo,
+    businessPremiseIDRef: invoice.invoiceData.businessPremises,
     invoiceNumberRef: invoice.invoiceData.invoiceNo,
     issueDateTimeRef: new Date(invoice.invoiceDate),
     invoiceAmount: invoice.totalAmount,
     paymentAmount: invoice.totalAmount,
     taxes,
     operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
-    protectedId: invoice.ZOI,
   };
 
-  const { JSONInvoice } = generateJSONInvoiceStorno(invoiceData);
+  const { JSONInvoice, ZOI } = generateJSONInvoiceStorno(invoiceData);
+
+  const EOR = await connectWithFURS(JSONInvoice);
+
+  const soldItems = invoice.soldItems.map((el) => {
+    const item = {
+      taxRate: el.taxRate,
+      taxableAmount: -el.taxableAmount,
+      amountWithTax: -el.amountWithTax,
+      quantity: el.quantity,
+      item: el.item,
+    };
+    return item;
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const invoiceDataToSave = {
+    paymentDueDate: new Date(),
+    serviceCompletionDate: new Date(),
+    recepient: {
+      name: buyer.fullName,
+      address: buyer.address,
+      postalCode: buyer.postalCode,
+      city: buyer.city,
+    },
+    invoiceData: {
+      businessPremises: invoiceData.businessPremiseID,
+      deviceNo: invoiceData.electronicDeviceIDNew,
+      invoiceNo: invoiceData.invoiceNumberNew,
+    },
+    soldItems,
+    paymentMethod: invoice.paymentMethod,
+    ZOI,
+    EOR,
+    storno: true,
+  };
+
+  const newInvoice = await Invoice.create(invoiceDataToSave);
 
   res.status(200).json({
     status: "success",
-    invoice,
+    invoice: newInvoice,
   });
 });
 
@@ -624,7 +667,7 @@ export const confirmFiscalInvoiceLater = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(invoice.invoiceDate),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: invoice.invoiceData.deviceNo,
     invoiceNumber: invoice.invoiceData.invoiceNo,
     invoiceAmount: invoice.totalAmount,
@@ -690,7 +733,7 @@ export const issueEmptyInvoice = catchAsync(async function (
   //   dateTime: new Date(),
   //   issueDateTime: new Date(),
   //   numberingStructure: "C",
-  //   businessPremiseID: "B1",
+  //   businessPremiseID: process.env.BUSINESSID as string,
   //   electronicDeviceID: "BLAGO",
   //   invoiceNumber: 36,
   //   invoiceAmount: 0,
@@ -720,7 +763,7 @@ export const issueEmptyInvoice = catchAsync(async function (
   // await Invoice.create(invoiceDataToSave);
 
   const invoice = await Invoice.findOne({
-    "invoiceData.deviceNo": "B1",
+    "invoiceData.deviceNo": process.env.BUSINESSID as string,
   }).sort({
     "invoiceData.invoiceNo": -1,
   });

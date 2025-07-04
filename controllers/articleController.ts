@@ -229,7 +229,7 @@ export const buyArticlesOnline = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
@@ -412,7 +412,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
@@ -574,7 +574,7 @@ export const buyGiftOnline = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
@@ -898,7 +898,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
     electronicDeviceID: "BLAG1",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
