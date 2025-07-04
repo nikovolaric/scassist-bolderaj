@@ -23,7 +23,7 @@ declare module "express-serve-static-core" {
         canInvoice: Boolean;
         taxNo: string | undefined;
         invoiceNickname: string | undefined;
-        unusedTickets: Schema.Types.ObjectId[] | undefined;
+        unusedTickets: Types.ObjectId[] | undefined;
         company: Schema.Types.ObjectId | undefined;
         agreesToTerms: Boolean;
         signedForNewsletter: Boolean;

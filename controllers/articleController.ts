@@ -13,7 +13,6 @@ import { generateRandomString } from "../utils/helpers";
 import Ticket from "../models/ticketModel";
 import { sendCode, sendInvoice } from "../utils/email";
 import {
-  bussinesPremises,
   connectWithFURS,
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
@@ -195,7 +194,7 @@ export const buyArticlesOnline = catchAsync(async function (
           morning: el.article.morning,
           validUntil:
             Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration ||
-            365,
+            Date.now() + 1000 * 60 * 60 * 24 * 365,
           user: req.user.id,
         };
 
@@ -215,7 +214,9 @@ export const buyArticlesOnline = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.priceDDV * el.quantity,
+      taxAmount:
+        parseFloat((el.article.priceDDV - el.article.price).toFixed(2)) *
+        el.quantity,
     };
     return tax;
   });
@@ -281,7 +282,9 @@ export const buyArticlesOnline = catchAsync(async function (
   const mailOptions = {
     email: invoice.buyer ? buyer.email : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
-    name: invoice.buyer
+    name: invoice.company.name
+      ? invoice.company.name
+      : invoice.buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
     companyName: invoice.company.name,
@@ -375,7 +378,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
           morning: el.article.morning,
           validUntil:
             Date.now() + 1000 * 60 * 60 * 24 * el.article.activationDuration ||
-            365,
+            Date.now() + 1000 * 60 * 60 * 24 * 365,
           user: user.id,
         };
         const ticket = await Ticket.create(data);
@@ -394,7 +397,9 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.priceDDV * el.quantity,
+      taxAmount:
+        parseFloat((el.article.priceDDV - el.article.price).toFixed(2)) *
+        el.quantity,
     };
     return tax;
   });
@@ -460,7 +465,9 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
   const mailOptions = {
     email: invoice.buyer ? buyer.email : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
-    name: invoice.buyer
+    name: invoice.company.name
+      ? invoice.company.name
+      : invoice.buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
     companyName: invoice.company.name,
@@ -552,7 +559,9 @@ export const buyGiftOnline = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.priceDDV * el.quantity,
+      taxAmount:
+        parseFloat((el.article.priceDDV - el.article.price).toFixed(2)) *
+        el.quantity,
     };
     return tax;
   });
@@ -618,7 +627,9 @@ export const buyGiftOnline = catchAsync(async function (
   const mailOptions = {
     email: invoice.buyer ? buyer.email : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
-    name: invoice.buyer
+    name: invoice.company.name
+      ? invoice.company.name
+      : invoice.buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
     companyName: invoice.company.name,
@@ -872,7 +883,9 @@ export const buyArticlesInPerson = catchAsync(async function (
     const tax = {
       taxRate: el.article.taxRate * 100,
       taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.priceDDV * el.quantity,
+      taxAmount:
+        parseFloat((el.article.priceDDV - el.article.price).toFixed(2)) *
+        el.quantity,
     };
     return tax;
   });

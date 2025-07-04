@@ -24,7 +24,7 @@ interface IUser {
   taxNo: string | undefined;
   invoiceNickname: string | undefined;
   company: Schema.Types.ObjectId | undefined;
-  unusedTickets: Schema.Types.ObjectId[];
+  unusedTickets: Types.ObjectId[];
   agreesToTerms: Boolean;
   infoIsTrue: Boolean;
   signedForNewsletter: Boolean;
@@ -130,7 +130,7 @@ const userSchema = new Schema<IUser>(
     },
     unusedTickets: [
       {
-        type: Schema.Types.ObjectId,
+        type: Types.ObjectId,
         ref: "Ticket",
       },
     ],
@@ -162,7 +162,7 @@ const userSchema = new Schema<IUser>(
     },
     parent: {
       type: Schema.Types.ObjectId,
-      res: "User",
+      ref: "User",
     },
     childAuthToken: String,
     childAuthTokenExpires: Date,

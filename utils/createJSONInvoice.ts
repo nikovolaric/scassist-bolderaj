@@ -21,6 +21,24 @@ interface InvoiceData {
   protectedId?: string;
 }
 
+interface InvoiceDataStorno {
+  dateTime: Date;
+  issueDateTime: Date;
+  issueDateTimeRef: Date;
+  numberingStructure: string;
+  businessPremiseID: string;
+  electronicDeviceIDNew: string;
+  invoiceNumberNew: number;
+  electronicDeviceIDRef: string;
+  invoiceNumberRef: number;
+  invoiceAmount: number;
+  paymentAmount: number;
+  taxes: any[];
+  operatorTaxNumber: string;
+  costumerVatNumber?: string;
+  protectedId?: string;
+}
+
 export function generateJSONInvoice(invoiceData: InvoiceData) {
   const ZOI = calculateZOI(
     process.env.BOLDERAJ_TAX_NUMBER!,
@@ -119,6 +137,132 @@ export function generateJSONInvoice(invoiceData: InvoiceData) {
             VAT: generateTaxes(),
           },
         ],
+        OperatorTaxNumber: Number(invoiceData.operatorTaxNumber),
+        ProtectedID: invoiceData.protectedId ?? ZOI,
+      },
+    },
+  };
+
+  return { JSONInvoice, ZOI };
+}
+
+export function generateJSONInvoiceStorno(invoiceData: InvoiceDataStorno) {
+  const ZOI = calculateZOI(
+    process.env.BOLDERAJ_TAX_NUMBER!,
+    invoiceData.issueDateTime.toISOString(),
+    invoiceData.invoiceNumberNew,
+    invoiceData.businessPremiseID,
+    invoiceData.electronicDeviceIDNew,
+    invoiceData.invoiceAmount
+  );
+
+  console.log(invoiceData);
+
+  const highTaxes = invoiceData.taxes.filter((tax) => tax.taxRate === 22);
+  const lowTaxes = invoiceData.taxes.filter((tax) => tax.taxRate === 9.5);
+
+  const highTaxTaxableAmount = parseFloat(
+    highTaxes.reduce((c, tax) => c + tax.taxableAmount, 0).toFixed(2)
+  );
+
+  const highTaxAmount = parseFloat(
+    highTaxes.reduce((c, tax) => c + tax.taxAmount, 0).toFixed(2)
+  );
+
+  const lowTaxTaxableAmount = parseFloat(
+    lowTaxes.reduce((c, tax) => c + tax.taxableAmount, 0).toFixed(2)
+  );
+
+  const lowTaxAmount = parseFloat(
+    lowTaxes.reduce((c, tax) => c + tax.taxAmount, 0).toFixed(2)
+  );
+
+  function generateTaxes() {
+    if (highTaxes.length > 0 && lowTaxes.length === 0) {
+      const VAT = [
+        {
+          TaxRate: parseFloat((22.0).toFixed(2)),
+          TaxableAmount: highTaxTaxableAmount,
+          TaxAmount: highTaxAmount,
+        },
+      ];
+
+      return VAT;
+    }
+
+    if (lowTaxes.length > 0 && highTaxes.length === 0) {
+      const VAT = [
+        {
+          TaxRate: parseFloat((9.5).toFixed(2)),
+          TaxableAmount: lowTaxTaxableAmount,
+          TaxAmount: lowTaxAmount,
+        },
+      ];
+
+      return VAT;
+    }
+
+    if (highTaxes.length > 0 && lowTaxes.length > 0) {
+      const VAT = [
+        {
+          TaxRate: parseFloat((9.5).toFixed(2)),
+          TaxableAmount: lowTaxTaxableAmount,
+          TaxAmount: lowTaxAmount,
+        },
+        {
+          TaxRate: parseFloat((22.0).toFixed(2)),
+          TaxableAmount: highTaxTaxableAmount,
+          TaxAmount: highTaxAmount,
+        },
+      ];
+
+      return VAT;
+    }
+  }
+
+  const JSONInvoice = {
+    InvoiceRequest: {
+      Header: {
+        MessageID: randomUUID(),
+        DateTime: format(invoiceData.dateTime, "yyyy-MM-dd'T'HH:mm:ss"),
+      },
+      Invoice: {
+        TaxNumber: Number(process.env.BOLDERAJ_TAX_NUMBER!),
+        IssueDateTime: format(
+          invoiceData.issueDateTime,
+          "yyyy-MM-dd'T'HH:mm:ss"
+        ),
+        // DateTime: invoiceData.dateTime.toISOString().split(".")[0],
+        NumberingStructure: invoiceData.numberingStructure,
+        InvoiceIdentifier: {
+          BusinessPremiseID: "B1",
+          ElectronicDeviceID: invoiceData.electronicDeviceIDNew,
+          InvoiceNumber: invoiceData.invoiceNumberNew.toString(),
+        },
+        ReferenceInvoice: {
+          ReferenceInvoiceIdentifier: {
+            BusinessPremiseID: "B1",
+            ElectronicDeviceID: invoiceData.electronicDeviceIDRef,
+            InvoiceNumber: invoiceData.invoiceNumberRef.toString(),
+          },
+          ReferenceInvoiceIssueDateTime: format(
+            invoiceData.issueDateTimeRef,
+            "yyyy-MM-dd'T'HH:mm:ss"
+          ),
+        },
+        InvoiceAmount: -invoiceData.invoiceAmount,
+        PaymentAmount: -invoiceData.paymentAmount,
+        TaxesPerSeller: [
+          {
+            VAT: generateTaxes(),
+          },
+        ],
+        SpecialNotes: `Storno računa B1-${invoiceData.electronicDeviceIDRef}-${
+          invoiceData.invoiceNumberRef
+        } z dne ${format(
+          invoiceData.issueDateTimeRef,
+          "yyyy-MM-dd'T'HH:mm:ss"
+        )}`,
         OperatorTaxNumber: Number(invoiceData.operatorTaxNumber),
         ProtectedID: invoiceData.protectedId ?? ZOI,
       },

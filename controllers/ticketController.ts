@@ -15,6 +15,51 @@ export const getOneTicket = getOne(Ticket, {
 });
 export const getAllTickets = getAll(Ticket);
 
+export const createTicket = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.body.user);
+
+  if (!user)
+    return next(new AppError("Can not create ticket without a user.", 400));
+
+  const {
+    name,
+    soldOn,
+    validUntil,
+    type,
+    morning,
+    duration,
+    visits,
+    visitsLeft,
+  } = req.body;
+
+  const data = {
+    name,
+    soldOn,
+    validUntil,
+    type,
+    morning,
+    duration,
+    visits,
+    visitsLeft,
+    user: user._id,
+  };
+
+  const ticket = await Ticket.create(data);
+
+  user.unusedTickets.push(ticket._id);
+
+  await user.save({ validateBeforeSave: false });
+
+  res.status(201).json({
+    status: "success",
+    ticket,
+  });
+});
+
 export const useTicket = catchAsync(async function (
   req: Request,
   res: Response,

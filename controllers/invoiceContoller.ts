@@ -7,6 +7,7 @@ import {
   connectWithFURS,
   echoFurs,
   generateJSONInvoice,
+  generateJSONInvoiceStorno,
 } from "../utils/createJSONInvoice";
 import AppError from "../utils/appError";
 import Article from "../models/articleModel";
@@ -369,7 +370,9 @@ export const downloadMyInvoice = catchAsync(async function (
     company_name: buyer ? buyer.companyName : "",
     issuer: issuer ? issuer.invoiceNickname : "Default",
     reference_number: invoice.reference,
-    customer_name: buyer
+    customer_name: invoice.company.name
+      ? invoice.company.name
+      : buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
     customer_address: invoice.company.address
@@ -427,7 +430,9 @@ export const downloadInvoicePDF = catchAsync(async function (
     company_name: buyer ? buyer.companyName : "",
     issuer: issuer ? issuer.invoiceNickname : "Default",
     reference_number: invoice.reference,
-    customer_name: buyer
+    customer_name: invoice.company.name
+      ? invoice.company.name
+      : buyer
       ? `${buyer.firstName} ${buyer.lastName}`
       : invoice.recepient.name,
     customer_address: invoice.company.address
@@ -493,7 +498,9 @@ export const downloadInvoices = catchAsync(async function (
         company_name: buyer ? buyer.companyName : "",
         issuer: issuer ? issuer.invoiceNickname : "Default",
         reference_number: invoice.reference,
-        customer_name: buyer
+        customer_name: invoice.company.name
+          ? invoice.company.name
+          : buyer
           ? `${buyer.firstName} ${buyer.lastName}`
           : invoice.recepient.name,
         customer_address: invoice.company.address
@@ -537,6 +544,61 @@ export const getUserInvoices = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {});
+
+export const stornoInvoice = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invoice = await Invoice.findById(req.params.id);
+
+  if (!invoice) {
+    return next(new AppError("Invoice does not exist!", 404));
+  }
+
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": invoice.invoiceData.deviceNo,
+  }).sort({
+    "invoiceData.invoiceNo": -1,
+  });
+
+  const taxes = invoice.soldItems.map((el) => {
+    const tax = {
+      taxRate: el.taxRate * 100,
+      taxableAmount: el.taxableAmount * el.quantity,
+      taxAmount:
+        parseFloat((el.amountWithTax - el.taxableAmount).toFixed(2)) *
+        el.quantity,
+    };
+    return tax;
+  });
+
+  const invoiceData = {
+    dateTime: new Date(),
+    issueDateTime: new Date(),
+    numberingStructure: "C",
+    businessPremiseID: "B1",
+    electronicDeviceIDNew: "BLAGO",
+    invoiceNumberNew: lastInvoice
+      ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+      : 1,
+    electronicDeviceIDRef: invoice.invoiceData.deviceNo,
+    invoiceNumberRef: invoice.invoiceData.invoiceNo,
+    issueDateTimeRef: new Date(invoice.invoiceDate),
+    invoiceAmount: invoice.totalAmount,
+    paymentAmount: invoice.totalAmount,
+    taxes,
+    operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+    protectedId: invoice.ZOI,
+  };
+
+  const { JSONInvoice } = generateJSONInvoiceStorno(invoiceData);
+
+  res.status(200).json({
+    status: "success",
+    invoice,
+  });
+});
 
 export const confirmFiscalInvoiceLater = catchAsync(async function (
   req: Request,
