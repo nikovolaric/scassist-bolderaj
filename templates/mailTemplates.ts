@@ -1,6 +1,10 @@
 import mjml2html from "mjml";
 
-export function generateGiftCodeMail(firstName: string, code: string) {
+export function generateGiftCodeMail(
+  firstName: string,
+  code: string,
+  article: string
+) {
   const mjmlTemplate = `<mjml owa="desktop" version="4.3.0">
   <mj-head>
     <mj-font href="https://fonts.googleapis.com/css2?family=Source+Sans+3" name="SuorceSans"></mj-font>
@@ -22,7 +26,7 @@ export function generateGiftCodeMail(firstName: string, code: string) {
       <mj-column>
         <mj-text align="left" color="#797e82" font-size="13px" line-height="22px" padding-bottom="0px" padding-left="50px" padding-right="50px" padding-top="0px" padding="0px 25px 0px 25px">
           <h1 style="text-align:center; color: #000000; line-height:32px" font-family="SuorceSans, sans-serif">Živijo<i style="font-style:italic"> </i>${firstName},</h1>
-          <h1 style="text-align:center; color: #000000; line-height:32px" font-family="SuorceSans, sans-serif">tvoja darilna koda je<i style="font-style:italic"> </i>${code}</h1>
+          <h1 style="text-align:center; color: #000000; line-height:32px" font-family="SuorceSans, sans-serif">tvoja darilna koda za ${article} je ${code}</h1>
         </mj-text>
         <mj-text align="left" color="#797e82" font-size="13px" line-height="22px" padding-bottom="0px" padding-left="50px" padding-right="50px" padding-top="0px" padding="0px 25px 0px 25px" font-family="SuorceSans, sans-serif">
           <p style="margin: 10px 0; text-align: center;">V priponki najdeš darilni bon v elektronski obliki, ki ga lahko natisneš in izpolniš.</p>

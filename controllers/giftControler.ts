@@ -33,7 +33,8 @@ export const getAllGifts = catchAsync(async function (
   })
     .populate({ path: "article", select: "name ageGroup" })
     .limit(Number(limit) || 50)
-    .skip(Number(limit) * (Number(page) - 1) || 0);
+    .skip(Number(limit) * (Number(page) - 1) || 0)
+    .sort({ expires: -1 });
 
   res.status(200).json({
     status: "success",
@@ -84,18 +85,26 @@ export const useGift = catchAsync(async function (
   const ticketData: {
     name: { sl: string; en: string };
     type: string;
-    duration: number;
-    visits: number;
     used: boolean;
+    duration?: number;
+    visits?: number;
+    visitsLeft?: number;
     usedOn?: Date;
     validUntil?: Date;
   } = {
     name,
     type,
-    duration,
-    visits,
     used: true,
   };
+
+  if (visits) {
+    ticketData.visits = visits;
+    ticketData.visitsLeft = visits - 1;
+  }
+
+  if (duration) {
+    ticketData.duration = duration;
+  }
 
   if (type === "dnevna") {
     ticketData.usedOn = new Date();
@@ -113,6 +122,11 @@ export const useGift = catchAsync(async function (
 
   gift.used = true;
   await gift.save({ validateBeforeSave: false });
+
+  if (type !== "dnevna") {
+    user.unusedTickets = [...user.unusedTickets, ticket._id];
+    await user.save({ validateBeforeSave: false });
+  }
 
   res.status(200).json({
     status: "success",

@@ -5,8 +5,40 @@ import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import Class from "../models/classModel";
 import Company from "../models/companyModel";
+import Ticket from "../models/ticketModel";
 
-export const getUser = getOne(User);
+export const getUser = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(new AppError("No document found with that ID", 404));
+  }
+
+  const validUnusedTickets = [];
+
+  for (const ticketId of user.unusedTickets) {
+    const ticket = await Ticket.findById(ticketId);
+
+    if (ticket && ticket.validUntil >= new Date()) {
+      validUnusedTickets.push(ticketId);
+    }
+  }
+
+  if (validUnusedTickets.length !== user.unusedTickets.length) {
+    user.unusedTickets = validUnusedTickets;
+    await user.save({ validateBeforeSave: false });
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
+
 export const updateUser = updateOne(User);
 export const getAllUsers = catchAsync(async function (
   req: Request,

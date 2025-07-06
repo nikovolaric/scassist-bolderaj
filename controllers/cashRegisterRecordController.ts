@@ -102,11 +102,16 @@ export const getCashRegisterRecord = catchAsync(async function (
   let activeCashRegisterRecord = null;
 
   for (const cookieName of cookieNames) {
-    const id = req.cookies[cookieName];
-    if (!id) continue;
+    const token = req.cookies[cookieName];
+    if (!token) continue;
+
+    const crInfo: any = verify(
+      token,
+      process.env.JWT_SECRET_CASHREGISTER as string
+    );
 
     const cr = await CashRegisterRecord.findOne({
-      _id: id,
+      _id: crInfo.id,
       user: req.user.id,
       logoutTime: { $exists: false }, // aktivna izmena
     });
@@ -136,13 +141,18 @@ export const endCashRegisterRecord = catchAsync(async function (
   let matchedCookieName: string | null = null;
   let cashRegisterRecord = null;
 
-  for (const name of cookieNames) {
-    const id = req.cookies[name];
-    if (!id) continue;
+  for (const cookieName of cookieNames) {
+    const token = req.cookies[cookieName];
+    if (!token) continue;
 
-    const record = await CashRegisterRecord.findById(id);
+    const crInfo: any = verify(
+      token,
+      process.env.JWT_SECRET_CASHREGISTER as string
+    );
+
+    const record = await CashRegisterRecord.findById(crInfo.id);
     if (record && record.user.toString() === req.user.id) {
-      matchedCookieName = name;
+      matchedCookieName = cookieName;
       cashRegisterRecord = record;
       break;
     }

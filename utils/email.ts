@@ -164,7 +164,11 @@ export const sendCode = async function (options: any) {
     },
   } as TransportOptions);
 
-  const html = generateGiftCodeMail(options.firstName, options.code);
+  const html = generateGiftCodeMail(
+    options.firstName,
+    options.code,
+    options.article
+  );
 
   //2. Define the email options
   const mailOptions = {
