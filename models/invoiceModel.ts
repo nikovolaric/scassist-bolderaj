@@ -180,18 +180,18 @@ invoiceSchema.pre("save", function (next) {
 });
 
 invoiceSchema.pre("save", async function (next) {
-  if (!this.invoiceData.invoiceNo) {
-    const lastInvoice = await Invoice.findOne().sort({
-      "invoiceData.invoiceNo": -1,
-    });
+  // if (!this.invoiceData.invoiceNo) {
+  //   const lastInvoice = await Invoice.findOne().sort({
+  //     "invoiceData.invoiceNo": -1,
+  //   });
 
-    if (!lastInvoice) {
-      this.invoiceData.invoiceNo = 1;
-    }
+  //   if (!lastInvoice) {
+  //     this.invoiceData.invoiceNo = 1;
+  //   }
 
-    if (lastInvoice)
-      this.invoiceData.invoiceNo = lastInvoice.invoiceData.invoiceNo + 1;
-  }
+  //   if (lastInvoice)
+  //     this.invoiceData.invoiceNo = lastInvoice.invoiceData.invoiceNo + 1;
+  // }
 
   if (this.issuer) {
     const user = await User.findById(this.issuer);

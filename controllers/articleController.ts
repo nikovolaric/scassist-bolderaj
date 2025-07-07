@@ -262,6 +262,9 @@ export const buyArticlesOnline = catchAsync(async function (
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
     },
     soldItems,
     paymentMethod: req.body.paymentMethod ? "paypal" : "online",
@@ -608,6 +611,9 @@ export const buyGiftOnline = catchAsync(async function (
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
     },
     soldItems,
     paymentMethod: req.body.paymentMethod ? "paypal" : "online",
@@ -677,7 +683,10 @@ export const buyArticlesInPerson = catchAsync(async function (
 ) {
   //preveri vpis v blagajno in ip
 
-  const user = await User.findById(req.params.id);
+  const user = await User.findById(req.params.id).populate({
+    path: "parent",
+    select: "email",
+  });
 
   if (!user) return next(new AppError("User not found", 404));
 
@@ -954,9 +963,14 @@ export const buyArticlesInPerson = catchAsync(async function (
   });
 
   const buyer = invoice.buyer as any;
+  const parent = user.parent as any;
 
   const mailOptions = {
-    email: invoice.buyer ? buyer.email : invoice.recepient.email,
+    email: invoice.buyer
+      ? buyer.email
+      : parent.email
+      ? parent.email
+      : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     name: invoice.buyer
       ? `${buyer.firstName} ${buyer.lastName}`
