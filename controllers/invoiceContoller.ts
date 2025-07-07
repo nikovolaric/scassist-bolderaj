@@ -15,6 +15,10 @@ import User from "../models/userModel";
 import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 import { Types } from "mongoose";
 import APIFeatures from "../utils/apiFeatures";
+import { updateOne } from "./handlerFactory";
+
+
+export const updateInvoice = updateOne(Invoice)
 
 export const getAllInvoices = catchAsync(async function (
   req: Request,
@@ -341,6 +345,7 @@ export const createInvoice = catchAsync(async function (
   });
 
   const invoiceDataToSave = {
+    invoiceDate: req.body.invoiceDate || new Date(),
     paymentDueDate: req.body.paymentDueDate || new Date(),
     serviceCompletionDate: req.body.serviceCompletionDate || new Date(),
     buyer: buyer?.id,

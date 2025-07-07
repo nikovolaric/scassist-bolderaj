@@ -14,6 +14,7 @@ import {
   myIssuedInvoices,
   registerPremise,
   stornoInvoice,
+  updateInvoice,
 } from "../controllers/invoiceContoller";
 
 const router = Router();
@@ -41,5 +42,7 @@ router.post("/premise", registerPremise);
 router.post("/fiscalecho", echoFiscal);
 router.post("/issueempty", issueEmptyInvoice);
 router.post("/storno/:id", stornoInvoice);
+
+router.route("/:id").patch(updateInvoice);
 
 export default router;
