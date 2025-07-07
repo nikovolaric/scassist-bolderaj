@@ -155,6 +155,119 @@ export const getAllInvoices = catchAsync(async function (
   });
 });
 
+export const getInvoicesTotalSum = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const {
+    dateFrom,
+    dateTo,
+    dateFromDone,
+    dateToDone,
+    article,
+    label,
+    buyerFullName,
+    issuer,
+    taxNo,
+    ...query
+  } = req.query;
+
+  let filter: any = query;
+
+  if (dateFrom && dateTo) {
+    filter = {
+      ...filter,
+      invoiceDate: {
+        $gte: new Date(dateFrom as string),
+        $lte: new Date(dateTo as string),
+      },
+    };
+  }
+
+  if (dateFromDone && dateToDone) {
+    filter = {
+      ...filter,
+      serviceCompletionDate: {
+        $gte: new Date(dateFrom as string),
+        $lte: new Date(dateTo as string),
+      },
+    };
+  }
+
+  if (article) {
+    filter = {
+      ...filter,
+      "soldItems.item": { $regex: article, $options: "i" },
+    };
+  }
+
+  if (label) {
+    const matchingArticles = await Article.find({
+      label,
+    }).select("name");
+
+    const articleNames = matchingArticles.map((a) => a.name.sl);
+
+    filter = { ...filter, "soldItems.item": { $in: articleNames } };
+  }
+
+  if (buyerFullName) {
+    const [firstName, ...lastNameParts] = (buyerFullName as string).split(" ");
+    const lastName = lastNameParts.join(" ");
+
+    const buyersObject = await User.find({
+      firstName: { $regex: `^${firstName}`, $options: "i" },
+      lastName: { $regex: `^${lastName}`, $options: "i" },
+    });
+
+    const buyerArray = buyersObject.map((a) => a._id);
+
+    filter = { ...filter, buyer: { $in: buyerArray } };
+  }
+
+  if (issuer) {
+    const [firstName, ...lastNameParts] = (issuer as string).split(" ");
+    const lastName = lastNameParts.join(" ");
+
+    const issuersObject = await User.find({
+      firstName: { $regex: `^${firstName}`, $options: "i" },
+      lastName: { $regex: `^${lastName}`, $options: "i" },
+    });
+
+    const issuerArray = issuersObject.map((a) => a._id);
+
+    filter = { ...filter, issuer: { $in: issuerArray } };
+  }
+
+  if (taxNo) {
+    filter = {
+      ...filter,
+      "company.taxNumber": { $regex: taxNo, $options: "i" },
+    };
+  }
+
+  const result = await Invoice.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        totalAmountSum: { $sum: "$totalAmount" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const totalAmount = result[0]?.totalAmountSum || 0;
+  const invoiceCount = result[0]?.count || 0;
+
+  res.status(200).json({
+    status: "success",
+    results: invoiceCount,
+    totalAmount,
+  });
+});
+
 export const createInvoice = catchAsync(async function (
   req: Request,
   res: Response,
@@ -632,10 +745,12 @@ export const stornoInvoice = catchAsync(async function (
     paymentMethod: invoice.paymentMethod,
     ZOI,
     EOR,
-    storno: true,
   };
 
   const newInvoice = await Invoice.create(invoiceDataToSave);
+
+  invoice.storno = true;
+  await invoice.save({ validateBeforeSave: false });
 
   res.status(200).json({
     status: "success",

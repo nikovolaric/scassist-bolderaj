@@ -8,6 +8,7 @@ import {
   downloadMyInvoice,
   echoFiscal,
   getAllInvoices,
+  getInvoicesTotalSum,
   getMyInvoices,
   issueEmptyInvoice,
   myIssuedInvoices,
@@ -32,6 +33,7 @@ router.use(restrictTo(["admin"]));
 router.route("/").get(getAllInvoices).post(createInvoice);
 router.get("/userinvoices/:id");
 router.post("/download", downloadInvoices);
+router.get("/totalamountsum", getInvoicesTotalSum);
 
 router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
 
