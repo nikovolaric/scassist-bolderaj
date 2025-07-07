@@ -348,7 +348,9 @@ export const login = catchAsync(async function (
   }
 
   //2. Check if the user exists && password is correct
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({
+    email: { $regex: email, $options: "i" },
+  }).select("+password");
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Incorrect username or password", 401));
@@ -370,7 +372,9 @@ export const loginReception = catchAsync(async function (
   }
 
   //2. Check if the user exists && password is correct
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({
+    email: { $regex: email, $options: "i" },
+  }).select("+password");
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Incorrect username or password", 401));
@@ -398,7 +402,9 @@ export const loginAdmin = catchAsync(async function (
   }
 
   //2. Check if the user exists && password is correct
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({
+    email: { $regex: email, $options: "i" },
+  }).select("+password");
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Incorrect username or password", 401));
@@ -492,8 +498,9 @@ export const forgotPassword = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const { email } = req.body;
   //1. Get user based on posted email
-  const user = await User.findOne({ email: req.body.email });
+  const user = await User.findOne({ email: { $regex: email, $options: "i" } });
   if (!user) {
     return next(new AppError("There is no user with that email adress", 404));
   }

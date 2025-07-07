@@ -17,8 +17,7 @@ import { Types } from "mongoose";
 import APIFeatures from "../utils/apiFeatures";
 import { updateOne } from "./handlerFactory";
 
-
-export const updateInvoice = updateOne(Invoice)
+export const updateInvoice = updateOne(Invoice);
 
 export const getAllInvoices = catchAsync(async function (
   req: Request,
@@ -287,13 +286,16 @@ export const createInvoice = catchAsync(async function (
 
   const cart = await Promise.all(
     req.body.articles.map(
-      async (el: { articleId: string; quantity: number }) => {
+      async (el: { articleId: string; quantity: number; discount: number }) => {
         const article = await Article.findById(el.articleId);
         if (!article) return next(new AppError("Article not found!", 404));
+
+        const discount = el.discount ?? 0;
 
         const articleToBuy = {
           article,
           quantity: el.quantity,
+          discount,
         };
 
         return articleToBuy;
@@ -302,13 +304,24 @@ export const createInvoice = catchAsync(async function (
   );
 
   const taxes = cart.map((el) => {
+    const quantity = el.quantity;
+    const discount = el.discount;
+
+    const netUnit = el.article.price * (1 - discount);
+    const grossUnit = el.article.priceDDV * (1 - discount);
+
+    const net = +(netUnit * quantity).toFixed(2);
+    const gross = +(grossUnit * quantity).toFixed(2);
+    const taxAmount = +(gross - net).toFixed(2);
+
     const tax = {
       taxRate: el.article.taxRate * 100,
-      taxableAmount: el.article.price * el.quantity,
-      taxAmount: el.article.priceDDV * el.quantity,
+      taxableAmount: net,
+      taxAmount,
     };
     return tax;
   });
+
   const totalPrice = cart.reduce(
     (c, el) => c + el.article.priceDDV * el.quantity,
     0
@@ -334,10 +347,20 @@ export const createInvoice = catchAsync(async function (
   const EOR = await connectWithFURS(JSONInvoice);
 
   const soldItems = cart.map((el) => {
+    const quantity = el.quantity;
+    const discount = el.discount;
+
+    const netUnit = el.article.price * (1 - discount);
+    const grossUnit = el.article.priceDDV * (1 - discount);
+
+    const net = +(netUnit * quantity).toFixed(2);
+    const gross = +(grossUnit * quantity).toFixed(2);
+    const taxAmount = +(gross - net).toFixed(2);
+
     const item = {
       taxRate: el.article.taxRate,
-      taxableAmount: el.article.price.toFixed(2),
-      amountWithTax: el.article.priceDDV,
+      taxableAmount: net,
+      amountWithTax: gross,
       quantity: el.quantity,
       item: el.article.name.sl,
     };
