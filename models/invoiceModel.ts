@@ -19,6 +19,7 @@ interface IInvoice {
     postalCode: string;
     city: string;
     taxNumber: string;
+    email: string;
   };
   invoiceDate: Date;
   serviceCompletionDate: Date;
@@ -72,6 +73,7 @@ const invoiceSchema = new Schema<IInvoice>(
       postalCode: String,
       city: String,
       taxNumber: String,
+      email: String,
     },
     invoiceDate: {
       type: Date,
@@ -180,19 +182,6 @@ invoiceSchema.pre("save", function (next) {
 });
 
 invoiceSchema.pre("save", async function (next) {
-  // if (!this.invoiceData.invoiceNo) {
-  //   const lastInvoice = await Invoice.findOne().sort({
-  //     "invoiceData.invoiceNo": -1,
-  //   });
-
-  //   if (!lastInvoice) {
-  //     this.invoiceData.invoiceNo = 1;
-  //   }
-
-  //   if (lastInvoice)
-  //     this.invoiceData.invoiceNo = lastInvoice.invoiceData.invoiceNo + 1;
-  // }
-
   if (this.issuer) {
     const user = await User.findById(this.issuer);
 

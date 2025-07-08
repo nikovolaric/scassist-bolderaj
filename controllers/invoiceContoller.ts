@@ -276,7 +276,10 @@ export const createInvoice = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const buyer = await User.findById(req.body.buyer);
+  let buyer;
+  if (req.body.buyer) {
+    buyer = await User.findById(req.body.buyer);
+  }
 
   const lastInvoice = await Invoice.findOne({
     "invoiceData.deviceNo": "BLAGO",
@@ -304,20 +307,15 @@ export const createInvoice = catchAsync(async function (
   );
 
   const taxes = cart.map((el) => {
-    const quantity = el.quantity;
     const discount = el.discount;
 
     const netUnit = el.article.price * (1 - discount);
     const grossUnit = el.article.priceDDV * (1 - discount);
 
-    const net = +(netUnit * quantity).toFixed(2);
-    const gross = +(grossUnit * quantity).toFixed(2);
-    const taxAmount = +(gross - net).toFixed(2);
-
     const tax = {
       taxRate: el.article.taxRate * 100,
-      taxableAmount: net,
-      taxAmount,
+      taxableAmount: netUnit,
+      taxAmount: grossUnit - netUnit,
     };
     return tax;
   });
@@ -347,20 +345,15 @@ export const createInvoice = catchAsync(async function (
   const EOR = await connectWithFURS(JSONInvoice);
 
   const soldItems = cart.map((el) => {
-    const quantity = el.quantity;
     const discount = el.discount;
 
     const netUnit = el.article.price * (1 - discount);
     const grossUnit = el.article.priceDDV * (1 - discount);
 
-    const net = +(netUnit * quantity).toFixed(2);
-    const gross = +(grossUnit * quantity).toFixed(2);
-    const taxAmount = +(gross - net).toFixed(2);
-
     const item = {
       taxRate: el.article.taxRate,
-      taxableAmount: net,
-      amountWithTax: gross,
+      taxableAmount: netUnit,
+      amountWithTax: grossUnit,
       quantity: el.quantity,
       item: el.article.name.sl,
     };
@@ -371,6 +364,7 @@ export const createInvoice = catchAsync(async function (
     invoiceDate: req.body.invoiceDate || new Date(),
     paymentDueDate: req.body.paymentDueDate || new Date(),
     serviceCompletionDate: req.body.serviceCompletionDate || new Date(),
+    company: req.body.company,
     buyer: buyer?.id,
     recepient: req.body.recepient,
     invoiceData: {
@@ -379,7 +373,7 @@ export const createInvoice = catchAsync(async function (
       invoiceNo: invoiceData.invoiceNumber,
     },
     soldItems,
-    paymentMethod: req.body.paymanetMethod,
+    paymentMethod: req.body.paymentMethod,
     ZOI,
     EOR,
   };
