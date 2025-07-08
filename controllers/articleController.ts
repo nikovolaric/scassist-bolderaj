@@ -448,6 +448,9 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
     },
     soldItems,
     paymentMethod: req.body.paymentMethod ? "paypal" : "online",
@@ -946,6 +949,9 @@ export const buyArticlesInPerson = catchAsync(async function (
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
     },
     soldItems,
     paymentMethod: req.body.paymentMethod,

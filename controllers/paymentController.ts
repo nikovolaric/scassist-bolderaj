@@ -43,7 +43,7 @@ export const checkPayment = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  if (req.body.articles.paymentMethod !== "online") {
+  if (req.body.paymentMethod !== "online") {
     return next();
   }
 
@@ -63,8 +63,11 @@ export const checkPayment = catchAsync(async function (
 
   if (!paymentRes.ok) return next(new AppError("Something went wrong!", 500));
 
-  if (paymentData.result.code !== "000.100.110")
+  const pattern = /^(000\.000\.|000\.100\.1|000\.[36]|000\.400\.[1][12]0)/;
+
+  if (!pattern.test(paymentData.result.code)) {
     return next(new AppError("Something went wrong!", 500));
+  }
 
   next();
 });
