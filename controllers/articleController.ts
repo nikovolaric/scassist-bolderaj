@@ -267,7 +267,7 @@ export const buyArticlesOnline = catchAsync(async function (
         : 1,
     },
     soldItems,
-    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
+    paymentMethod: req.body.paymentMethod,
     ZOI,
     EOR,
   };
@@ -453,7 +453,7 @@ export const buyArticlesOnlineForChild = catchAsync(async function (
         : 1,
     },
     soldItems,
-    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
+    paymentMethod: req.body.paymentMethod,
     ZOI,
     EOR,
   };
@@ -619,7 +619,7 @@ export const buyGiftOnline = catchAsync(async function (
         : 1,
     },
     soldItems,
-    paymentMethod: req.body.paymentMethod ? "paypal" : "online",
+    paymentMethod: req.body.paymentMethod,
     ZOI,
     EOR,
   };
