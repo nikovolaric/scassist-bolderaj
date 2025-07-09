@@ -34,7 +34,7 @@ export const getAllGifts = catchAsync(async function (
     .populate({ path: "article", select: "name ageGroup" })
     .limit(Number(limit) || 50)
     .skip(Number(limit) * (Number(page) - 1) || 0)
-    .sort({ expires: -1 });
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     status: "success",
