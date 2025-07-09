@@ -4,7 +4,7 @@ import catchAsync from "../utils/catchAsync";
 import Ticket from "../models/ticketModel";
 import User from "../models/userModel";
 import AppError from "../utils/appError";
-import { getAll, getOne } from "./handlerFactory";
+import { deleteOne, getAll, getOne, updateOne } from "./handlerFactory";
 import Visit from "../models/visitModel";
 import Article from "../models/articleModel";
 import Company from "../models/companyModel";
@@ -14,6 +14,8 @@ export const getOneTicket = getOne(Ticket, {
   select: "firstName lastName email",
 });
 export const getAllTickets = getAll(Ticket);
+export const updateTicket = updateOne(Ticket);
+export const deleteTicket = deleteOne(Ticket);
 
 export const createTicket = catchAsync(async function (
   req: Request,
@@ -25,26 +27,18 @@ export const createTicket = catchAsync(async function (
   if (!user)
     return next(new AppError("Can not create ticket without a user.", 400));
 
-  const {
-    name,
-    soldOn,
-    validUntil,
-    type,
-    morning,
-    duration,
-    visits,
-    visitsLeft,
-  } = req.body;
+  const article = await Article.findById(req.body.article);
+
+  if (!article) return next(new AppError("Article does not exist..", 400));
+
+  const { name, type, morning, duration, visits } = article;
 
   const data = {
     name,
-    soldOn,
-    validUntil,
     type,
     morning,
     duration,
     visits,
-    visitsLeft,
     user: user._id,
   };
 

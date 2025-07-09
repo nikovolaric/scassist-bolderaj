@@ -2,10 +2,12 @@ import { Router } from "express";
 import {
   createTicket,
   createTicketsForCompany,
+  deleteTicket,
   getAllTickets,
   getChildValidTickets,
   getMyValidTickets,
   getOneTicket,
+  updateTicket,
   useTicket,
 } from "../controllers/ticketController";
 import { protect, restrictTo } from "../controllers/authController";
@@ -29,5 +31,6 @@ router.use(restrictTo(["admin"]));
 
 router.route("/").post(createTicket);
 router.post("/createforcompany/:id", createTicketsForCompany);
+router.route("/:id").patch(updateTicket).delete(deleteTicket);
 
 export default router;
