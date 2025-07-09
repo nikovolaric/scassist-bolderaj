@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Gift from "../models/giftModel";
 import catchAsync from "../utils/catchAsync";
-import { getOne } from "./handlerFactory";
+import { deleteOne, getOne } from "./handlerFactory";
 import AppError from "../utils/appError";
 import User from "../models/userModel";
 import { generateRandomString } from "../utils/helpers";
@@ -12,6 +12,8 @@ export const getOneGift = getOne(Gift, {
   path: "article",
   select: "name ageGroup",
 });
+
+export const deleteGift = deleteOne(Gift)
 
 export const getAllGifts = catchAsync(async function (
   req: Request,
@@ -140,11 +142,15 @@ export const generateGiftCodes = catchAsync(async function (
 ) {
   await Promise.all(
     Array.from({ length: req.body.quantity }).map(async () => {
-      const data = {
+      const data: any = {
         article: req.body.article,
         label: req.body.label,
         giftCode: generateRandomString(8),
       };
+
+      if (req.body.expires) {
+        data.expires = req.body.expires;
+      }
 
       await Gift.create(data);
     })

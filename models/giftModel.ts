@@ -24,7 +24,7 @@ const giftSchema = new Schema<IGift>(
     used: Boolean,
     expires: {
       type: Date,
-      default: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      default: () => new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
     },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }

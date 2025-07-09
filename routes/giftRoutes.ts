@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
+  deleteGift,
   generateGiftCodes,
   getAllGifts,
   getOneGift,
@@ -18,5 +19,6 @@ router.post("/:id/usegift", restrictTo(["admin", "employee"]), useGift);
 router.use(restrictTo(["admin"]));
 
 router.post("/generatecodes", generateGiftCodes);
+router.delete("/:id", deleteGift);
 
 export default router;
