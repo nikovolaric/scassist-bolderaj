@@ -215,10 +215,12 @@ export const protectCR = catchAsync(async function (
 
     try {
       const decoded: any = verify(token, process.env.JWT_SECRET_CASHREGISTER!);
+
       const cr = await CashRegisterRecord.findById(decoded.id);
 
-      if (cr && cr.user.toString() === req.user.id) {
+      if (cr && (cr.user as any).id === req.user.id) {
         currentCR = cr;
+
         break;
       }
     } catch (err) {
@@ -226,6 +228,7 @@ export const protectCR = catchAsync(async function (
       continue;
     }
   }
+  console.log(currentCR);
 
   if (!currentCR) {
     return next(
