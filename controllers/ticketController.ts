@@ -15,7 +15,33 @@ export const getOneTicket = getOne(Ticket, {
 });
 export const getAllTickets = getAll(Ticket);
 export const updateTicket = updateOne(Ticket);
-export const deleteTicket = deleteOne(Ticket);
+// export const deleteTicket = deleteOne(Ticket);
+
+export const deleteTicket = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findById(req.body.user);
+
+  if (!user) return next(new AppError("User not found.", 404));
+
+  user.unusedTickets = user.unusedTickets.filter(
+    (t) => t.toString() !== req.params.id
+  );
+
+  await user.save({ validateBeforeSave: false });
+
+  const visits = await Visit.find({ ticket: req.params.id });
+
+  if (visits.length === 0) {
+    await Ticket.findByIdAndDelete(req.params.id);
+  }
+
+  res.status(204).json({
+    status: "success",
+  });
+});
 
 export const createTicket = catchAsync(async function (
   req: Request,
