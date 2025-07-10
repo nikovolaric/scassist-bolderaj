@@ -18,6 +18,7 @@ const cashRegisterRecordSchema = new Schema<ICashRegisterRecord>(
     user: {
       type: Schema.Types.ObjectId,
       required: [true, "A cash register record must have a user"],
+      ref: "User",
     },
     loginTime: {
       type: Date,
@@ -58,7 +59,7 @@ cashRegisterRecordSchema.pre("save", function (next) {
     this.hoursWorked =
       (this.logoutTime.getTime() - this.loginTime.getTime()) / (1000 * 60 * 60);
   }
-  
+
   next();
 });
 

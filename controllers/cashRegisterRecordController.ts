@@ -4,14 +4,36 @@ import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import CashRegisterRecord from "../models/cashRegisterRecordModel";
 import { deleteOne, getAll, getOne, updateOne } from "./handlerFactory";
+import { addDays, parse } from "date-fns";
 
-export const getAllCashRegisterRecords = getAll(CashRegisterRecord);
+// export const getAllCashRegisterRecords = getAll(CashRegisterRecord);
 export const getOneCashRegisterRecord = getOne(CashRegisterRecord, {
   path: "user",
   select: "firstName lastName email",
 });
 export const updateCashRegisterRecord = updateOne(CashRegisterRecord);
 export const deleteCashRegisterRecord = deleteOne(CashRegisterRecord);
+
+export const getAllCashRegisterRecords = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { date } = req.query;
+
+  const cashRegister = await CashRegisterRecord.find({
+    loginTime: {
+      $gte: parse(date as string, "d.M.yyyy", new Date()),
+      $lt: addDays(parse(date as string, "d.M.yyyy", new Date()), 1),
+    },
+  }).populate({ path: "user", select: "firstName lastName" });
+
+  res.status(200).json({
+    status: "success",
+    results: cashRegister.length,
+    cashRegister,
+  });
+});
 
 const signToken = function (id: string) {
   return sign({ id }, process.env.JWT_SECRET_CASHREGISTER!, {

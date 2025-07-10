@@ -12,7 +12,10 @@ export const getUser = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.params.id);
+  const user = await User.findById(req.params.id).populate({
+    path: "parent",
+    select: "firstName lastName birthDate",
+  });
 
   if (!user) {
     return next(new AppError("No document found with that ID", 404));
@@ -87,7 +90,7 @@ export const getMe = catchAsync(async function (
     });
   }
 
-  if (me.age >= 18 && me.parent) {
+  if (me.age >= 18 && me.parent && me.email && me.password) {
     const parent = await User.findById(me.parent);
     if (!parent) return next(new AppError("Parent does not exist.", 401));
 
