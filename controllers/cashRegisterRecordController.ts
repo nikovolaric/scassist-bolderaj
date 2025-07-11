@@ -174,7 +174,11 @@ export const endCashRegisterRecord = catchAsync(async function (
 
     const record = await CashRegisterRecord.findById(crInfo.id);
 
-    if (record && (record.user as any).id === req.user.id) {
+    if (
+      record &&
+      ((record.user as any).id === req.user.id ||
+        record.user.toString() === req.user.id)
+    ) {
       matchedCookieName = cookieName;
       cashRegisterRecord = record;
       break;
@@ -219,7 +223,11 @@ export const protectCR = catchAsync(async function (
 
       const cr = await CashRegisterRecord.findById(decoded.id);
 
-      if (cr && (cr.user as any).id === req.user.id) {
+      if (
+        cr &&
+        ((cr.user as any).id === req.user.id ||
+          cr.user.toString() === req.user.id)
+      ) {
         currentCR = cr;
 
         break;
