@@ -173,7 +173,8 @@ export const endCashRegisterRecord = catchAsync(async function (
     );
 
     const record = await CashRegisterRecord.findById(crInfo.id);
-    if (record && record.user.toString() === req.user.id) {
+
+    if (record && (record.user as any).id === req.user.id) {
       matchedCookieName = cookieName;
       cashRegisterRecord = record;
       break;
@@ -228,7 +229,6 @@ export const protectCR = catchAsync(async function (
       continue;
     }
   }
-  console.log(currentCR);
 
   if (!currentCR) {
     return next(
