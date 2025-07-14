@@ -731,7 +731,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     )
   );
 
-  cart.forEach(async (el: any) => {
+  for (const el of cart) {
     if (el.article.label === "V") {
       if (!el.gift && !el.useNow && !el.otherId) {
         let tickets: ObjectId[] = [];
@@ -895,7 +895,7 @@ export const buyArticlesInPerson = catchAsync(async function (
         }
       }
     }
-  });
+  }
 
   const taxes = cart.map((el) => {
     const tax = {
@@ -1011,7 +1011,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     ZOI: invoice.ZOI,
   };
 
-  await sendInvoice(mailOptions);
+  // await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",
