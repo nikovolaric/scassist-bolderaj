@@ -198,6 +198,7 @@ export const endCashRegisterRecord = catchAsync(async function (
   // Počisti samo ustrezni cookie
   if (matchedCookieName) {
     res.clearCookie(matchedCookieName);
+    res.clearCookie("jwt");
   }
 
   res.status(200).json({
