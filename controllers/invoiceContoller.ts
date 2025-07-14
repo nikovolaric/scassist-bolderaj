@@ -298,15 +298,7 @@ export const getMonthlyReport = catchAsync(async function (
               options: "i",
             },
           }
-        : {
-            $not: {
-              $regexMatch: {
-                input: "$company.taxNumber",
-                regex: "SI",
-                options: "i",
-              },
-            },
-          };
+        : {};
 
     return [
       {
