@@ -171,8 +171,8 @@ export const getInvoicesTotalSum = catchAsync(async function (
     article,
     label,
     buyerFullName,
-    issuer,
     taxNo,
+    issuer,
     ...query
   } = req.query;
 
@@ -229,24 +229,17 @@ export const getInvoicesTotalSum = catchAsync(async function (
     filter = { ...filter, buyer: { $in: buyerArray } };
   }
 
-  if (issuer) {
-    const [firstName, ...lastNameParts] = (issuer as string).split(" ");
-    const lastName = lastNameParts.join(" ");
-
-    const issuersObject = await User.find({
-      firstName: { $regex: `^${firstName}`, $options: "i" },
-      lastName: { $regex: `^${lastName}`, $options: "i" },
-    });
-
-    const issuerArray = issuersObject.map((a) => a._id);
-
-    filter = { ...filter, issuer: { $in: issuerArray } };
-  }
-
   if (taxNo) {
     filter = {
       ...filter,
       "company.taxNumber": { $regex: taxNo, $options: "i" },
+    };
+  }
+
+  if (issuer) {
+    filter = {
+      ...filter,
+      issuer: new Types.ObjectId(issuer as string),
     };
   }
 
@@ -454,6 +447,7 @@ export const myIssuedInvoices = catchAsync(async function (
         invoiceDate: 1,
         paymentMethod: 1,
         storno: 1,
+        totalAmount: 1,
         buyer: {
           firstName: 1,
           lastName: 1,

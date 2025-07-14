@@ -19,9 +19,10 @@ export const getAllCashRegisterRecords = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const { date } = req.query;
+  const { date, ...query } = req.query;
 
   const cashRegister = await CashRegisterRecord.find({
+    ...query,
     loginTime: {
       $gte: parse(date as string, "d.M.yyyy", new Date()),
       $lt: addDays(parse(date as string, "d.M.yyyy", new Date()), 1),
