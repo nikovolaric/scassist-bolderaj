@@ -14,6 +14,7 @@ import {
   myIssuedInvoices,
   registerPremise,
   stornoInvoice,
+  stornoInvoiceReception,
   updateInvoice,
 } from "../controllers/invoiceContoller";
 
@@ -28,6 +29,7 @@ router.use(restrictTo(["admin", "employee"]));
 
 router.get("/myissuedtoday", myIssuedInvoices);
 router.get("/download/:id", downloadInvoicePDF);
+router.post("/stornoreception/:id", stornoInvoiceReception);
 
 router.use(restrictTo(["admin"]));
 

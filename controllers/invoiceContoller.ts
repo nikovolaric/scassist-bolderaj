@@ -439,13 +439,13 @@ export const myIssuedInvoices = catchAsync(async function (
         as: "buyer",
       },
     },
-    { $unwind: "$buyer" },
+    { $unwind: { path: "$buyer", preserveNullAndEmptyArrays: true } },
     {
       $match: {
-        "buyer.lastName": {
-          $regex: req.query.name || "",
-          $options: "i",
-        },
+        $or: [
+          { "buyer.lastName": { $regex: req.query.name || "", $options: "i" } },
+          { buyer: null },
+        ],
       },
     },
     {
@@ -453,6 +453,7 @@ export const myIssuedInvoices = catchAsync(async function (
         invoiceData: 1,
         invoiceDate: 1,
         paymentMethod: 1,
+        storno: 1,
         buyer: {
           firstName: 1,
           lastName: 1,
@@ -692,7 +693,7 @@ export const stornoInvoice = catchAsync(async function (
   }
 
   const lastInvoice = await Invoice.findOne({
-    "invoiceData.deviceNo": invoice.invoiceData.deviceNo,
+    "invoiceData.deviceNo": "BLAGO",
   })
     .sort({
       "invoiceData.invoiceNo": -1,
@@ -765,6 +766,108 @@ export const stornoInvoice = catchAsync(async function (
     },
     soldItems,
     paymentMethod: invoice.paymentMethod,
+    ZOI,
+    EOR,
+  };
+
+  const newInvoice = await Invoice.create(invoiceDataToSave);
+
+  invoice.storno = true;
+  await invoice.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    invoice: newInvoice,
+  });
+});
+
+export const stornoInvoiceReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invoice = await Invoice.findById(req.params.id);
+
+  if (!invoice) {
+    return next(new AppError("Invoice does not exist!", 404));
+  }
+
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAG1",
+  })
+    .sort({
+      "invoiceData.invoiceNo": -1,
+    })
+    .populate({
+      path: "buyer",
+      select: "firstName lastName address postalCode city",
+    });
+
+  const taxes = invoice.soldItems.map((el) => {
+    const tax = {
+      taxRate: el.taxRate * 100,
+      taxableAmount: el.taxableAmount * el.quantity,
+      taxAmount:
+        parseFloat((el.amountWithTax - el.taxableAmount).toFixed(2)) *
+        el.quantity,
+    };
+    return tax;
+  });
+
+  const invoiceData = {
+    dateTime: new Date(),
+    issueDateTime: new Date(),
+    numberingStructure: "C",
+    businessPremiseID: process.env.BUSINESSID as string,
+    electronicDeviceIDNew: "BLAG1",
+    invoiceNumberNew: lastInvoice
+      ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+      : 1,
+    electronicDeviceIDRef: invoice.invoiceData.deviceNo,
+    businessPremiseIDRef: invoice.invoiceData.businessPremises,
+    invoiceNumberRef: invoice.invoiceData.invoiceNo,
+    issueDateTimeRef: new Date(invoice.invoiceDate),
+    invoiceAmount: invoice.totalAmount,
+    paymentAmount: invoice.totalAmount,
+    taxes,
+    operatorTaxNumber: req.user.taxNo || process.env.BOLDERAJ_TAX_NUMBER!,
+  };
+
+  const { JSONInvoice, ZOI } = generateJSONInvoiceStorno(invoiceData);
+
+  const EOR = await connectWithFURS(JSONInvoice);
+
+  const soldItems = invoice.soldItems.map((el) => {
+    const item = {
+      taxRate: el.taxRate,
+      taxableAmount: -el.taxableAmount,
+      amountWithTax: -el.amountWithTax,
+      quantity: el.quantity,
+      item: el.item,
+    };
+    return item;
+  });
+
+  const buyer = invoice.buyer as any;
+
+  const invoiceDataToSave = {
+    paymentDueDate: new Date(),
+    serviceCompletionDate: new Date(),
+    recepient: {
+      name: buyer.fullName,
+      address: buyer.address,
+      postalCode: buyer.postalCode,
+      city: buyer.city,
+    },
+    invoiceData: {
+      businessPremises: invoiceData.businessPremiseID,
+      deviceNo: invoiceData.electronicDeviceIDNew,
+      invoiceNo: invoiceData.invoiceNumberNew,
+    },
+    soldItems,
+    paymentMethod: invoice.paymentMethod,
+    issuer: req.user.id,
+    issuerNickname: req.user.invoiceNickname,
     ZOI,
     EOR,
   };
