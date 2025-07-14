@@ -9,6 +9,7 @@ import {
   echoFiscal,
   getAllInvoices,
   getInvoicesTotalSum,
+  getMonthlyReport,
   getMyInvoices,
   issueEmptyInvoice,
   myIssuedInvoices,
@@ -37,6 +38,8 @@ router.route("/").get(getAllInvoices).post(createInvoice);
 router.get("/userinvoices/:id");
 router.post("/download", downloadInvoices);
 router.get("/totalamountsum", getInvoicesTotalSum);
+
+router.post("/getmothlyaccountingreport", getMonthlyReport);
 
 router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
 

@@ -16,6 +16,7 @@ import { generateInvoicePDFBuffer } from "../templates/sendInvoiceTemplate";
 import { Types } from "mongoose";
 import APIFeatures from "../utils/apiFeatures";
 import { updateOne } from "./handlerFactory";
+import ExcelJS from "exceljs";
 
 export const updateInvoice = updateOne(Invoice);
 
@@ -267,6 +268,321 @@ export const getInvoicesTotalSum = catchAsync(async function (
     results: invoiceCount,
     totalAmount,
   });
+});
+
+export const getMonthlyReport = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { month, year } = req.body;
+
+  const start = new Date(`${year}-${month.padStart(2, "0")}-01T00:00:00.000Z`);
+  const end = new Date(
+    `${year}-${(Number(month) + 1)
+      .toString()
+      .padStart(2, "0")}-01T00:00:00.000Z`
+  );
+
+  function buildReportPipeline(
+    taxNoFilter: "SI" | "NON_SI",
+    start: Date,
+    end: Date
+  ) {
+    const taxMatch =
+      taxNoFilter === "SI"
+        ? {
+            $regexMatch: {
+              input: "$company.taxNumber",
+              regex: "SI",
+              options: "i",
+            },
+          }
+        : {
+            $not: {
+              $regexMatch: {
+                input: "$company.taxNumber",
+                regex: "SI",
+                options: "i",
+              },
+            },
+          };
+
+    return [
+      {
+        $match: {
+          invoiceDate: { $gte: start, $lt: end },
+        },
+      },
+      {
+        $match: {
+          $expr: taxMatch,
+        },
+      },
+      { $unwind: "$soldItems" },
+      {
+        $group: {
+          _id: "$soldItems.taxRate",
+          totalTaxableAmount: {
+            $sum: {
+              $multiply: ["$soldItems.taxableAmount", "$soldItems.quantity"],
+            },
+          },
+          totalTaxAmount: {
+            $sum: {
+              $multiply: [
+                {
+                  $subtract: [
+                    "$soldItems.amountWithTax",
+                    "$soldItems.taxableAmount",
+                  ],
+                },
+                "$soldItems.quantity",
+              ],
+            },
+          },
+          totalWithTax: {
+            $sum: {
+              $multiply: ["$soldItems.amountWithTax", "$soldItems.quantity"],
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          taxDetails: {
+            $push: {
+              taxRate: "$_id",
+              base: "$totalTaxableAmount",
+              tax: "$totalTaxAmount",
+              total: "$totalWithTax",
+            },
+          },
+          totalTaxableAmount: { $sum: "$totalTaxableAmount" },
+          totalTaxAmount: { $sum: "$totalTaxAmount" },
+          totalAmount: { $sum: "$totalWithTax" },
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          let: { startDate: start, endDate: end },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $gte: ["$invoiceDate", "$$startDate"] },
+                    { $lt: ["$invoiceDate", "$$endDate"] },
+                    taxMatch,
+                  ],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$paymentMethod",
+                totalByMethod: { $sum: "$totalAmount" },
+              },
+            },
+          ],
+          as: "paymentBreakdown",
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          let: { startDate: start, endDate: end },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $gte: ["$invoiceDate", "$$startDate"] },
+                    { $lt: ["$invoiceDate", "$$endDate"] },
+                    taxMatch,
+                  ],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                invoiceDate: 1,
+                invoiceData: 1,
+                soldItems: 1,
+                paymentMethod: 1,
+                company: 1,
+                totalAmount: 1,
+                paymentDueDate: 1,
+              },
+            },
+          ],
+          as: "matchedInvoices",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          period: {
+            start,
+            end,
+          },
+          totalTaxableAmount: 1,
+          totalTaxAmount: 1,
+          totalAmount: 1,
+          taxDetails: 1,
+          paymentBreakdown: {
+            $map: {
+              input: "$paymentBreakdown",
+              as: "method",
+              in: {
+                paymentMethod: "$$method._id",
+                amount: "$$method.totalByMethod",
+              },
+            },
+          },
+          matchedInvoices: 1,
+        },
+      },
+    ];
+  }
+
+  const reportSI = await Invoice.aggregate(
+    buildReportPipeline("SI", start, end)
+  );
+  const reportNONSI = await Invoice.aggregate(
+    buildReportPipeline("NON_SI", start, end)
+  );
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet1 = workbook.addWorksheet("Poročilo - Fizične osebe");
+
+  // === Naslov ===
+  sheet1.addRow([
+    `Poročilo za obdobje ${reportNONSI[0].period.start.toLocaleDateString()} - ${reportNONSI[0].period.end.toLocaleDateString()}`,
+  ]);
+  sheet1.addRow([]);
+
+  // === 1. TABELA: DDV PO STOPNJAH ===
+  sheet1.addRow(["Davčna stopnja", "Osnova", "DDV", "Skupaj"]);
+
+  reportNONSI[0].taxDetails.forEach(
+    (tax: { taxRate: number; base: number; tax: number; total: number }) => {
+      sheet1.addRow([
+        tax.taxRate * 100 + " %",
+        tax.base.toFixed(2),
+        tax.tax.toFixed(2),
+        tax.total.toFixed(2),
+      ]);
+    }
+  );
+
+  sheet1.addRow([]);
+  sheet1.addRow([
+    "Skupaj",
+    reportNONSI[0].totalTaxableAmount.toFixed(2),
+    reportNONSI[0].totalTaxAmount.toFixed(2),
+    reportNONSI[0].totalAmount.toFixed(2),
+  ]);
+  sheet1.addRow([]);
+
+  sheet1.addRow(["Način plačila", "Znesek"]);
+
+  reportNONSI[0].paymentBreakdown.forEach(
+    (method: { paymentMethod: string; amount: number }) => {
+      sheet1.addRow([
+        method.paymentMethod === "online"
+          ? "spletno plačilo - kratica"
+          : method.paymentMethod === "card"
+          ? "kartica"
+          : method.paymentMethod,
+        method.amount.toFixed(2),
+      ]);
+    }
+  );
+
+  // Formatiranje (optional)
+  sheet1.columns.forEach((column) => {
+    column.width = 20;
+  });
+
+  const sheet2 = workbook.addWorksheet("Poročilo - DDV kupci");
+
+  sheet2.addRow(["Poročilo za DDV kupce (SI)"]);
+
+  // Glava za podrobno tabelo po računih
+  sheet2.addRow([
+    "Številka računa",
+    "Kupec",
+    "Datum izdaje",
+    "Rok plačila",
+    "Način plačila",
+    "Osnova 9,5 %",
+    "Osnova 22 %",
+    "DDV",
+    "Skupaj",
+  ]);
+
+  // Za vsak račun iz reportSI[0].matchedInvoices
+  for (const invoice of reportSI[0].matchedInvoices) {
+    const invoiceNumber = `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`;
+    const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString();
+    const paymentMethod = invoice.paymentMethod;
+    const dueDate = invoice.paymentDueDate
+      ? new Date(invoice.paymentDueDate).toLocaleDateString()
+      : "-";
+
+    // Inicializiramo vsote za 9,5% in 22%
+    let base_9_5 = 0;
+    let base_22 = 0;
+    let totalTax = 0;
+    let totalAmount = 0;
+
+    for (const item of invoice.soldItems) {
+      const qty = item.quantity;
+      const taxableAmount = item.taxableAmount * qty;
+      const taxAmount = (item.amountWithTax - item.taxableAmount) * qty;
+      const amountWithTax = item.amountWithTax * qty;
+
+      if (Math.abs(item.taxRate - 0.095) < 0.0001) {
+        base_9_5 += taxableAmount;
+      } else if (Math.abs(item.taxRate - 0.22) < 0.0001) {
+        base_22 += taxableAmount;
+      } else {
+        // Če imaš še druge stopnje, jih lahko dodaš tukaj
+      }
+
+      totalTax += taxAmount;
+      totalAmount += amountWithTax;
+    }
+
+    sheet2.addRow([
+      invoiceNumber,
+      invoice.company.name,
+      invoiceDate,
+      dueDate,
+      paymentMethod,
+      base_9_5.toFixed(2),
+      base_22.toFixed(2),
+      totalTax.toFixed(2),
+      totalAmount.toFixed(2),
+    ]);
+
+    // Dodaj prazno vrstico med računi za preglednost
+    sheet2.addRow([]);
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader("Content-Disposition", 'attachment; filename="porocilo.xlsx"');
+
+  res.send(Buffer.from(buffer));
 });
 
 export const createInvoice = catchAsync(async function (
