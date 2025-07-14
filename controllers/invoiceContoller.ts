@@ -35,6 +35,7 @@ export const getAllInvoices = catchAsync(async function (
     buyerFullName,
     issuer,
     taxNo,
+    issuerId,
     ...query
   } = req.query;
 
@@ -135,6 +136,10 @@ export const getAllInvoices = catchAsync(async function (
       ...filter,
       "company.taxNumber": { $regex: taxNo, $options: "i" },
     };
+  }
+
+  if (issuerId) {
+    filter = { ...filter, issuer: issuerId };
   }
 
   const features = new APIFeatures(

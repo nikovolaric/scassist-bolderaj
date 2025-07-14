@@ -1011,7 +1011,7 @@ export const buyArticlesInPerson = catchAsync(async function (
     ZOI: invoice.ZOI,
   };
 
-  // await sendInvoice(mailOptions);
+  await sendInvoice(mailOptions);
 
   res.status(200).json({
     status: "success",
