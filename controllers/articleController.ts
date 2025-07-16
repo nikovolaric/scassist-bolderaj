@@ -781,7 +781,7 @@ export const buyArticlesInPerson = catchAsync(async function (
       }
 
       if (el.useNow && !el.otherId) {
-        const data = {
+        const data: any = {
           name: el.article.name,
           type: el.article.type,
           duration: el.article.duration,
@@ -789,6 +789,10 @@ export const buyArticlesInPerson = catchAsync(async function (
           user: user.id,
           used: true,
         };
+
+        if (el.article.type === "paket") {
+          data.visitsLeft = el.article.visits - 1;
+        }
 
         const ticket = await Ticket.create(data);
 
