@@ -66,13 +66,16 @@ export const createPreInvoice = catchAsync(async function (
 
   const cart = await Promise.all(
     req.body.articles.map(
-      async (el: { articleId: string; quantity: number }) => {
+      async (el: { articleId: string; quantity: number; discount: number }) => {
         const article = await Article.findById(el.articleId);
         if (!article) return next(new AppError("Article not found!", 404));
+
+        const discount = el.discount ?? 0;
 
         const articleToBuy = {
           article,
           quantity: el.quantity,
+          discount,
         };
 
         return articleToBuy;
@@ -81,11 +84,17 @@ export const createPreInvoice = catchAsync(async function (
   );
 
   const soldItems = cart.map((el) => {
+    const discount = el.discount;
+
+    const netUnit = el.article.price * (1 - discount);
+    const grossUnit = el.article.priceDDV * (1 - discount);
+
     const item = {
       taxRate: el.article.taxRate,
-      taxableAmount: el.article.price.toFixed(2),
+      taxableAmount: netUnit,
+      amountWithTax: grossUnit,
       quantity: el.quantity,
-      item: el.article.name,
+      item: el.article.name.sl,
     };
     return item;
   });
@@ -103,6 +112,7 @@ export const createPreInvoice = catchAsync(async function (
           phoneNumber: user.phoneNumber,
         }
       : req.body.recepient,
+    buyer: user?.id,
     date: req.body.date,
     dueDate: req.body.dueDate,
     items: soldItems,
@@ -128,11 +138,14 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
     return next(new Error("PreInvoice not found"));
   }
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
-  const { recepient, dueDate, reference, items, totalAmount } = preInvoice;
+  const { recepient, dueDate, reference, items, totalAmount, buyer, company } =
+    preInvoice;
 
   const taxes = items.map((el) => {
     const tax = {
@@ -147,8 +160,8 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "BO",
+    businessPremiseID: process.env.BUSINESSID as string,
+    electronicDeviceID: "BLAGO",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
@@ -163,12 +176,17 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
   const EOR = await connectWithFURS(JSONInvoice);
 
   const newInvoiceData = {
+    invoiceDate: new Date(),
     paymentDueDate: req.body.dueDate || dueDate,
+    serviceCompletionDate: req.body.serviceCompletionDate || new Date(),
     recepient,
+    company,
+    buyer,
     reference,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: invoiceData.invoiceNumber,
     },
     soldItems: items,
     paymentMethod: "nakazilo",

@@ -758,14 +758,13 @@ export const buyArticlesInPerson = catchAsync(async function (
       }
 
       if (el.gift) {
-        const data = {
-          article: el.article.id,
-          giftCode: generateRandomString(8),
-          label: el.article.label,
-        };
-
         await Promise.all(
           Array.from({ length: el.quantity }).map(async () => {
+            const data = {
+              article: el.article.id,
+              giftCode: generateRandomString(8),
+              label: el.article.label,
+            };
             const gift = await Gift.create(data);
 
             if (!gift) return next(new AppError("Something went wrong!", 500));

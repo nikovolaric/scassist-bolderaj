@@ -408,6 +408,7 @@ export const getMonthlyReport = catchAsync(async function (
                 company: 1,
                 totalAmount: 1,
                 paymentDueDate: 1,
+                serviceCompletionDate: 1,
               },
             },
           ],
@@ -500,36 +501,109 @@ export const getMonthlyReport = catchAsync(async function (
     column.width = 20;
   });
 
-  if (reportSI.length > 0) {
-    const sheet2 = workbook.addWorksheet("Poročilo - DDV kupci");
+  const sheet2 = workbook.addWorksheet("Knjiga izdanih računov");
 
-    sheet2.addRow(["Poročilo za DDV kupce (SI)"]);
+  sheet2.addRow([
+    `Knjiga izdanih računov ${reportNONSI[0].period.start.toLocaleDateString()} - ${reportNONSI[0].period.end.toLocaleDateString()}`,
+  ]);
+
+  // Glava za podrobno tabelo po računih
+  sheet2.addRow([
+    "Datum izdaje",
+    "Datum opravljene storitve",
+    "Številka računa",
+    "Kupec",
+    "ID za DDV kupca",
+    "Način plačila",
+    "Vrednost z DDV",
+    "Osnova 22 %",
+    "DDV 22 %",
+    "Osnova 9,5 %",
+    "DDV 9,5 %",
+  ]);
+
+  for (const invoice of reportNONSI[0].matchedInvoices) {
+    const invoiceNumber = `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`;
+    const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString();
+    const serviceCompletionDate = new Date(
+      invoice.serviceCompletionDate
+    ).toLocaleDateString();
+    const paymentMethod = invoice.paymentMethod;
+
+    // Inicializiramo vsote za 9,5% in 22%
+    let base_9_5 = 0;
+    let totalTax_9_5 = 0;
+    let base_22 = 0;
+    let totalTax_22 = 0;
+    let totalAmount = 0;
+
+    for (const item of invoice.soldItems) {
+      const qty = item.quantity;
+      const taxableAmount = item.taxableAmount * qty;
+      const taxAmount = (item.amountWithTax - item.taxableAmount) * qty;
+      const amountWithTax = item.amountWithTax * qty;
+
+      if (Math.abs(item.taxRate - 0.095) < 0.0001) {
+        base_9_5 += taxableAmount;
+        totalTax_9_5 += taxAmount;
+      } else if (Math.abs(item.taxRate - 0.22) < 0.0001) {
+        base_22 += taxableAmount;
+        totalTax_22 += taxAmount;
+      } else {
+        // Če imaš še druge stopnje, jih lahko dodaš tukaj
+      }
+
+      totalAmount += amountWithTax;
+    }
+
+    sheet2.addRow([
+      invoiceDate,
+      serviceCompletionDate,
+      invoiceNumber,
+      invoice.company?.name ?? "/",
+      invoice.company?.taxNumber ?? "/",
+      paymentMethod,
+      totalAmount.toFixed(2),
+      base_22.toFixed(2),
+      totalTax_22.toFixed(2),
+      base_9_5.toFixed(2),
+      totalTax_9_5.toFixed(2),
+    ]);
+  }
+
+  if (reportSI.length > 0) {
+    const sheet3 = workbook.addWorksheet("Poročilo - DDV kupci");
+
+    sheet3.addRow(["Poročilo za DDV kupce (SI)"]);
 
     // Glava za podrobno tabelo po računih
-    sheet2.addRow([
+    sheet3.addRow([
+      "Datum izdaje",
+      "Datum opravljene storitve",
       "Številka računa",
       "Kupec",
-      "Datum izdaje",
-      "Rok plačila",
+      "ID za DDV kupca",
       "Način plačila",
-      "Osnova 9,5 %",
+      "Vrednost z DDV",
       "Osnova 22 %",
-      "DDV",
-      "Skupaj",
+      "DDV 22 %",
+      "Osnova 9,5 %",
+      "DDV 9,5 %",
     ]);
 
     for (const invoice of reportSI[0].matchedInvoices) {
       const invoiceNumber = `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`;
       const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString();
+      const serviceCompletionDate = new Date(
+        invoice.serviceCompletionDate
+      ).toLocaleDateString();
       const paymentMethod = invoice.paymentMethod;
-      const dueDate = invoice.paymentDueDate
-        ? new Date(invoice.paymentDueDate).toLocaleDateString()
-        : "-";
 
       // Inicializiramo vsote za 9,5% in 22%
       let base_9_5 = 0;
+      let totalTax_9_5 = 0;
       let base_22 = 0;
-      let totalTax = 0;
+      let totalTax_22 = 0;
       let totalAmount = 0;
 
       for (const item of invoice.soldItems) {
@@ -540,26 +614,29 @@ export const getMonthlyReport = catchAsync(async function (
 
         if (Math.abs(item.taxRate - 0.095) < 0.0001) {
           base_9_5 += taxableAmount;
+          totalTax_9_5 += taxAmount;
         } else if (Math.abs(item.taxRate - 0.22) < 0.0001) {
           base_22 += taxableAmount;
+          totalTax_22 += taxAmount;
         } else {
           // Če imaš še druge stopnje, jih lahko dodaš tukaj
         }
 
-        totalTax += taxAmount;
         totalAmount += amountWithTax;
       }
 
-      sheet2.addRow([
+      sheet3.addRow([
+        invoiceDate,
+        serviceCompletionDate,
         invoiceNumber,
         invoice.company.name,
-        invoiceDate,
-        dueDate,
+        invoice.company.taxNumber,
         paymentMethod,
-        base_9_5.toFixed(2),
-        base_22.toFixed(2),
-        totalTax.toFixed(2),
         totalAmount.toFixed(2),
+        base_22.toFixed(2),
+        totalTax_22.toFixed(2),
+        base_9_5.toFixed(2),
+        totalTax_9_5.toFixed(2),
       ]);
     }
   }
