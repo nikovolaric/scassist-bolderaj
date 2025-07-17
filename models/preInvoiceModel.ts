@@ -45,19 +45,15 @@ const preInvoiceSchema = new Schema<IPreInvoice>(
     recepient: {
       name: {
         type: String,
-        required: [true, "Recepient must have a name"],
       },
       address: {
         type: String,
-        required: [true, "Recepient must have an address"],
       },
       city: {
         type: String,
-        required: [true, "Recepient must have a city"],
       },
       postalCode: {
         type: String,
-        required: [true, "Recepient must have a postal code"],
       },
       email: String,
       phoneNumber: String,
@@ -169,49 +165,49 @@ preInvoiceSchema.pre("save", function (next) {
   next();
 });
 
-preInvoiceSchema.post("save", async function (doc, next) {
-  if (doc.isNew) {
-    await doc.populate({
-      path: "buyer",
-      select: "email firstName lastName phoneNumber postalCode city address",
-    });
-    const buyer = doc.buyer as any;
+// preInvoiceSchema.post("save", async function (doc, next) {
+//   if (doc.isNew) {
+//     await doc.populate({
+//       path: "buyer",
+//       select: "email firstName lastName phoneNumber postalCode city address",
+//     });
+//     const buyer = doc.buyer as any;
 
-    const mailOptions = {
-      email: doc.buyer ? buyer.email : doc.recepient.email,
-      preInvoiceNumber: `${doc.preInvoiceNumber}-${new Date().getFullYear()}`,
-      invoiceDate: doc.date,
-      companyName: doc.company.name,
-      reference: doc.reference,
-      name: buyer ? `${buyer.firstName} ${buyer.lastName}` : doc.recepient.name,
-      address: doc.company.address
-        ? doc.company.address
-        : buyer
-        ? buyer.address
-        : doc.recepient.address,
-      postalCode: doc.company.postalCode
-        ? doc.company.postalCode
-        : buyer
-        ? buyer.postalCode
-        : doc.recepient.postalCode,
-      city: doc.company.city
-        ? doc.company.city
-        : buyer
-        ? buyer.city
-        : doc.recepient.city,
-      taxNumber: doc.company.taxNumber,
-      paymentMethod: "nakazilo",
-      dueDate: doc.dueDate,
-      items: doc.items,
-      totalAmount: doc.totalAmount,
-      taxAmount: doc.totalAmount - doc.totalTaxableAmount,
-    };
+//     const mailOptions = {
+//       email: doc.buyer ? buyer.email : doc.recepient.email,
+//       preInvoiceNumber: `${doc.preInvoiceNumber}-${new Date().getFullYear()}`,
+//       invoiceDate: doc.date,
+//       companyName: doc.company.name,
+//       reference: doc.reference,
+//       name: buyer ? `${buyer.firstName} ${buyer.lastName}` : doc.recepient.name,
+//       address: doc.company.address
+//         ? doc.company.address
+//         : buyer
+//         ? buyer.address
+//         : doc.recepient.address,
+//       postalCode: doc.company.postalCode
+//         ? doc.company.postalCode
+//         : buyer
+//         ? buyer.postalCode
+//         : doc.recepient.postalCode,
+//       city: doc.company.city
+//         ? doc.company.city
+//         : buyer
+//         ? buyer.city
+//         : doc.recepient.city,
+//       taxNumber: doc.company.taxNumber,
+//       paymentMethod: "nakazilo",
+//       dueDate: doc.dueDate,
+//       items: doc.items,
+//       totalAmount: doc.totalAmount,
+//       taxAmount: doc.totalAmount - doc.totalTaxableAmount,
+//     };
 
-    await sendPreInvoice(mailOptions);
+//     await sendPreInvoice(mailOptions);
 
-    next();
-  }
-});
+//     next();
+//   }
+// });
 
 const PreInvoice = model<IPreInvoice>("PreInvoice", preInvoiceSchema);
 

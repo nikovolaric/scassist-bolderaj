@@ -62,7 +62,7 @@ export const createPreInvoice = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.body.user);
+  const user = await User.findById(req.body.buyer);
 
   const cart = await Promise.all(
     req.body.articles.map(
@@ -113,6 +113,7 @@ export const createPreInvoice = catchAsync(async function (
         }
       : req.body.recepient,
     buyer: user?.id,
+    company: req.body.company,
     date: req.body.date,
     dueDate: req.body.dueDate,
     items: soldItems,
@@ -144,7 +145,7 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
     "invoiceData.invoiceNo": -1,
   });
 
-  const { recepient, dueDate, reference, items, totalAmount, buyer, company } =
+  const { recepient, reference, items, totalAmount, buyer, company } =
     preInvoice;
 
   const taxes = items.map((el) => {
@@ -177,8 +178,8 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
 
   const newInvoiceData = {
     invoiceDate: new Date(),
-    paymentDueDate: req.body.dueDate || dueDate,
-    serviceCompletionDate: req.body.serviceCompletionDate || new Date(),
+    paymentDueDate: new Date(),
+    serviceCompletionDate: new Date(),
     recepient,
     company,
     buyer,
@@ -195,6 +196,9 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
   };
 
   const invoice = await Invoice.create(newInvoiceData);
+
+  preInvoice.payed = true;
+  await preInvoice.save({ validateBeforeSave: false });
 
   res.status(201).json({
     status: "success",
@@ -225,9 +229,12 @@ export const checkPayedPreInvoices = catchAsync(async function (
 
   const preInvoices = await PreInvoice.find({ reference: { $in: references } });
 
-  let lastInvoice = await Invoice.findOne().sort({
+  let lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAGO",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
+
   let currentInvoiceNo = lastInvoice
     ? Number(lastInvoice.invoiceData.invoiceNo) + 1
     : 1;
@@ -240,7 +247,15 @@ export const checkPayedPreInvoices = catchAsync(async function (
       continue; // ⬅️ Namesto return uporabi continue, da nadaljuje z ostalimi!
     }
 
-    const { recepient, dueDate, reference, items, totalAmount } = preInvoice;
+    const {
+      recepient,
+      dueDate,
+      reference,
+      items,
+      totalAmount,
+      buyer,
+      company,
+    } = preInvoice;
 
     const taxes = items.map((el) => ({
       taxRate: el.taxRate * 100,
@@ -252,9 +267,9 @@ export const checkPayedPreInvoices = catchAsync(async function (
       dateTime: new Date(),
       issueDateTime: new Date(),
       numberingStructure: "C",
-      businessPremiseID: "PC1",
-      electronicDeviceID: "BO",
-      invoiceNumber: currentInvoiceNo, // ✅ Vedno povečaj številko računa
+      businessPremiseID: process.env.BUSINESSID as string,
+      electronicDeviceID: "BLAGO",
+      invoiceNumber: currentInvoiceNo,
       invoiceAmount: totalAmount,
       paymentAmount: totalAmount,
       taxes,
@@ -265,8 +280,12 @@ export const checkPayedPreInvoices = catchAsync(async function (
     const EOR = await connectWithFURS(JSONInvoice);
 
     const newInvoiceData = {
-      paymentDueDate: req.body.dueDate || dueDate,
+      invoiceDate: new Date(),
+      paymentDueDate: new Date(),
+      serviceCompletionDate: new Date(),
       recepient,
+      buyer,
+      company,
       reference,
       invoiceData: {
         businessPremises: invoiceData.businessPremiseID,
@@ -345,7 +364,7 @@ export const downloadPreInvoiceFromClass = catchAsync(async function (
     tax_number: preInvoice.company.taxNumber,
     total_with_tax: preInvoice.totalAmount,
     vat_amount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
-    payment_method: "Po predračunu",
+    payment_method: "nakazilo",
     due_date: preInvoice.dueDate,
     items: preInvoice.items,
   };
@@ -390,7 +409,7 @@ export const downloadMyPreInvoice = catchAsync(async function (
     tax_number: preInvoice.company.taxNumber,
     total_with_tax: preInvoice.totalAmount,
     vat_amount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
-    payment_method: "Po predračunu",
+    payment_method: "nakazilo",
     due_date: preInvoice.dueDate,
     items: preInvoice.items,
   };
@@ -447,7 +466,7 @@ export const downloadPreInvoiceReception = catchAsync(async function (
     tax_number: preInvoice.company.taxNumber,
     total_with_tax: preInvoice.totalAmount,
     vat_amount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
-    payment_method: "Po predračunu",
+    payment_method: "nakazilo",
     due_date: preInvoice.dueDate,
     items: preInvoice.items,
   };
@@ -468,11 +487,14 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
     return next(new AppError("PreInvoice not found", 404));
   }
 
-  const lastInvoice = await Invoice.findOne().sort({
+  const lastInvoice = await Invoice.findOne({
+    "invoiceData.deviceNo": "BLAG1",
+  }).sort({
     "invoiceData.invoiceNo": -1,
   });
 
-  const { recepient, dueDate, reference, items, totalAmount } = preInvoice;
+  const { recepient, reference, items, totalAmount, buyer, company } =
+    preInvoice;
 
   const taxes = items.map((el) => {
     const tax = {
@@ -487,15 +509,15 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
     dateTime: new Date(),
     issueDateTime: new Date(),
     numberingStructure: "C",
-    businessPremiseID: "PC1",
-    electronicDeviceID: "B1",
+    businessPremiseID: process.env.BUSINESSID as string,
+    electronicDeviceID: "BLAG1",
     invoiceNumber: lastInvoice
       ? Number(lastInvoice.invoiceData.invoiceNo) + 1
       : 1,
     invoiceAmount: totalAmount,
     paymentAmount: totalAmount,
     taxes,
-    operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+    operatorTaxNumber: req.user.taxNo || process.env.BOLDERAJ_TAX_NUMBER!,
   };
 
   const { JSONInvoice, ZOI } = generateJSONInvoice(invoiceData);
@@ -503,12 +525,17 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
   const EOR = await connectWithFURS(JSONInvoice);
 
   const newInvoiceData = {
-    paymentDueDate: req.body.dueDate || dueDate,
+    invoiceDate: new Date(),
+    paymentDueDate: new Date(),
+    serviceCompletionDate: new Date(),
     recepient,
+    company,
+    buyer,
     reference,
     invoiceData: {
       businessPremises: invoiceData.businessPremiseID,
       deviceNo: invoiceData.electronicDeviceID,
+      invoiceNo: invoiceData.invoiceNumber,
     },
     soldItems: items,
     paymentMethod: req.body.paymentMethod,
@@ -520,7 +547,6 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
   const invoice = await Invoice.create(newInvoiceData);
 
   preInvoice.payed = true;
-
   await preInvoice.save({ validateBeforeSave: false });
 
   res.status(201).json({

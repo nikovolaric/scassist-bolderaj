@@ -270,7 +270,15 @@ export function generatePreInvoicePDFBuffer(invoiceData: any): Promise<Buffer> {
       .moveDown();
 
     if (invoiceData.tax_number) {
-      doc.text(`ID za DDV: ${invoiceData.tax_number}`, 50, 100 + 45);
+      doc.text(
+        `${
+          invoiceData.tax_number.startsWith("SI")
+            ? "ID za DDV"
+            : "Davčna številka"
+        }: ${invoiceData.tax_number}`,
+        50,
+        100 + 45
+      );
     }
 
     doc.fillColor("#444444").fontSize(20).text("Predračun", 50, 180);
@@ -504,7 +512,7 @@ Plačilo predračuna ${reference}
  
 ${process.env.BOLDERAJ_TRR}
 ${reference.replace(" ", "")}
-Bolderaj d.o.o.
+Bolderaj, športne dejavnosti in storitve, d.o.o.
 ${process.env.BOLDERAJ_ADDRESS}
 ${process.env.BOLDERAJ_POSTAL}`;
 

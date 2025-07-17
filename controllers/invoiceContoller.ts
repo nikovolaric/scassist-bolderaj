@@ -450,7 +450,7 @@ export const getMonthlyReport = catchAsync(async function (
   );
 
   const workbook = new ExcelJS.Workbook();
-  const sheet1 = workbook.addWorksheet("Poročilo - Fizične osebe");
+  const sheet1 = workbook.addWorksheet("Poročilo - Skupaj");
 
   // === Naslov ===
   sheet1.addRow([

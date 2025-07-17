@@ -277,7 +277,9 @@ export async function generateInvoicePDFBuffer(
       .fillColor("#444444")
       .fontSize(10)
       .font("SourceSans3Bold")
-      .text("Bolderaj, športne dejavnosti in storitve, d.o.o.", 200, 50, { align: "right" })
+      .text("Bolderaj, športne dejavnosti in storitve, d.o.o.", 200, 50, {
+        align: "right",
+      })
       .font("SourceSans3")
       .text("Ob progi 3", 200, 65, { align: "right" })
       .text("3250 Rogaška Slatina", 200, 80, { align: "right" })
@@ -318,7 +320,15 @@ export async function generateInvoicePDFBuffer(
       .moveDown();
 
     if (invoiceData.tax_number) {
-      doc.text(`ID za DDV: ${invoiceData.tax_number}`, 50, 100 + 45);
+      doc.text(
+        `${
+          invoiceData.tax_number.startsWith("SI")
+            ? "ID za DDV"
+            : "Davčna številka"
+        }: ${invoiceData.tax_number}`,
+        50,
+        100 + 45
+      );
     }
 
     doc.fillColor("#444444").fontSize(20).text("Račun", 50, 180);

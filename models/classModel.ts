@@ -19,7 +19,8 @@ interface IClass {
   time: number[];
   ageGroup: string[];
   article: Schema.Types.ObjectId[];
-  hidden: boolean;
+  hiddenReception: boolean;
+  hiddenUsers: boolean;
 }
 
 const classSchema = new Schema<IClass>(
@@ -53,7 +54,11 @@ const classSchema = new Schema<IClass>(
         ref: "Article",
       },
     ],
-    hidden: {
+    hiddenReception: {
+      type: Boolean,
+      default: true,
+    },
+    hiddenUsers: {
       type: Boolean,
       default: true,
     },
