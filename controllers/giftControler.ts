@@ -13,7 +13,7 @@ export const getOneGift = getOne(Gift, {
   select: "name ageGroup",
 });
 
-export const deleteGift = deleteOne(Gift)
+export const deleteGift = deleteOne(Gift);
 
 export const getAllGifts = catchAsync(async function (
   req: Request,

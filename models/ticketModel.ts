@@ -64,7 +64,7 @@ const ticketSchema = new Schema<ITicket>(
 );
 
 ticketSchema.pre("save", function (next) {
-  if (this.isNew) {
+  if (this.isNew && !this.visitsLeft) {
     this.visitsLeft = this.visits;
   }
 
