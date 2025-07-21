@@ -88,6 +88,7 @@ export const useGift = catchAsync(async function (
     name: { sl: string; en: string };
     type: string;
     used: boolean;
+    user: string;
     duration?: number;
     visits?: number;
     visitsLeft?: number;
@@ -97,6 +98,7 @@ export const useGift = catchAsync(async function (
     name,
     type,
     used: true,
+    user: req.body.userId,
   };
 
   if (visits) {

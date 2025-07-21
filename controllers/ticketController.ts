@@ -120,32 +120,41 @@ export const useTicket = catchAsync(async function (
     });
   }
 
-  if (ticket.type === "terminska" && ticket.validUntil < new Date())
-    return next(new AppError("This ticket is used", 400));
+  if (ticket.type === "terminska" && ticket.validUntil < new Date()) {
+    user.unusedTickets = user.unusedTickets.filter((t) => {
+      return t.toString() !== ticket.id.toString();
+    });
 
-  if (ticket.type === "terminska") {
+    await user.save({ validateBeforeSave: false });
+    return next(new AppError("This ticket is not valid anymore.", 400));
+  }
+
+  if (ticket.type === "terminska" && !ticket.used) {
     ticket.validUntil = new Date(
       Date.now() + ticket.duration * 24 * 60 * 60 * 1000
     );
     ticket.used = true;
-
-    if (ticket.validUntil < new Date()) {
-      user.unusedTickets = user.unusedTickets.filter((t) => {
-        return t.toString() !== ticket.id.toString();
-      });
-    }
   }
 
   if (
     ticket.type === "paket" &&
     (!ticket.visitsLeft || ticket.validUntil < new Date())
-  )
-    return next(new AppError("This ticket is used", 400));
+  ) {
+    user.unusedTickets = user.unusedTickets.filter((t) => {
+      return t.toString() !== ticket.id.toString();
+    });
+
+    await user.save({ validateBeforeSave: false });
+    return next(new AppError("This ticket is not valid anymore.", 400));
+  }
 
   if (ticket.type === "paket") {
-    ticket.validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    if (!ticket.used) {
+      ticket.validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      ticket.used = true;
+    }
+
     ticket.visitsLeft = ticket.visitsLeft - 1;
-    ticket.used = true;
     if (ticket.visitsLeft === 0) {
       user.unusedTickets = user.unusedTickets.filter((t) => {
         return t.toString() !== ticket.id.toString();
