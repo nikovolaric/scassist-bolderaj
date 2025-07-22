@@ -975,10 +975,10 @@ export const buyArticlesInPerson = catchAsync(async function (
   const parent = user.parent as any;
 
   const mailOptions = {
-    email: invoice.buyer
-      ? buyer.email
-      : parent.email
+    email: parent
       ? parent.email
+      : invoice.buyer
+      ? buyer.email
       : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     name: invoice.buyer
