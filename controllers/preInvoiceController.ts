@@ -102,7 +102,7 @@ export const createPreInvoice = catchAsync(async function (
   const preInvoiceDataToSave = {
     recepient: user
       ? {
-          name: `${user.firstName}${user.lastName}`,
+          name: `${user.fullName}`,
           address: user.address,
           city: user.city,
           postalCode: user.postalCode,
