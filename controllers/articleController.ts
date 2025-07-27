@@ -793,6 +793,12 @@ export const buyArticlesInPerson = catchAsync(async function (
           data.visitsLeft = el.article.visits - 1;
         }
 
+        if (el.article.type === "terminska") {
+          data.validUntil = new Date(
+            new Date().setDate(new Date().getDate() + el.article.duration)
+          );
+        }
+
         const ticket = await Ticket.create(data);
 
         if (!ticket) return next(new AppError("Something went wrong!", 500));
@@ -829,6 +835,12 @@ export const buyArticlesInPerson = catchAsync(async function (
 
             if (el.useNow && el.article.visits) {
               data.visitsLeft = el.article.visits - 1;
+            }
+
+            if (el.article.type === "terminska" && el.useNow) {
+              data.validUntil = new Date(
+                new Date().setDate(new Date().getDate() + el.article.duration)
+              );
             }
 
             const ticket = await Ticket.create(data);

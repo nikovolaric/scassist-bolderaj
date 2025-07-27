@@ -27,12 +27,12 @@ const ticketSchema = new Schema<ITicket>(
     },
     soldOn: {
       type: Date,
-      default: Date.now(),
+      default: () => new Date(),
       required: [true, "Ticket must have a sold on date"],
     },
     validUntil: {
       type: Date,
-      default: Date.now() + 1000 * 60 * 60 * 24 * 365,
+      default: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
       required: [true, "Ticket must have a valid until date"],
     },
     type: {

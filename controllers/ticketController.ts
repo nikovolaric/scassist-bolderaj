@@ -131,7 +131,7 @@ export const useTicket = catchAsync(async function (
 
   if (ticket.type === "terminska" && !ticket.used) {
     ticket.validUntil = new Date(
-      Date.now() + ticket.duration * 24 * 60 * 60 * 1000
+      new Date().setDate(new Date().getDate() + ticket.duration)
     );
     ticket.used = true;
   }

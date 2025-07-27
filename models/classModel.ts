@@ -15,7 +15,6 @@ interface IClass {
   full: boolean;
   dates: Date[];
   totalClasses: number;
-  weekDay: number;
   time: number[];
   ageGroup: string[];
   article: Schema.Types.ObjectId[];
@@ -34,7 +33,7 @@ const classSchema = new Schema<IClass>(
       },
     },
     teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    hourlyRate: { type: Number, required: true },
+    hourlyRate: { type: Number },
     students: [
       {
         student: { type: Schema.Types.ObjectId, ref: "User" },
@@ -45,7 +44,6 @@ const classSchema = new Schema<IClass>(
     full: { type: Boolean, default: false },
     dates: [{ type: Date }],
     totalClasses: Number,
-    weekDay: { type: Number },
     time: [Number],
     ageGroup: [String],
     article: [
