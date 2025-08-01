@@ -101,20 +101,28 @@ articleSchema.virtual("classPriceData").get(function () {
     const weeksLeft = Math.floor(
       (Date.parse(this.endDate.toDateString()) - Date.now()) / ms
     );
-    const price = parseFloat(
-      ((this.price * weeksLeft) / totalWeeks).toFixed(2)
-    );
-    const priceDDV = parseFloat((price * (1 + this.taxRate)).toFixed(2));
 
-    const classPriceData = {
-      price,
-      priceDDV,
-    };
+    if (this.startDate < new Date()) {
+      const price = parseFloat(
+        ((this.price * weeksLeft) / totalWeeks).toFixed(2)
+      );
+      const priceDDV = parseFloat((price * (1 + this.taxRate)).toFixed(2));
 
-    return classPriceData;
+      const classPriceData = {
+        price,
+        priceDDV,
+      };
+
+      return classPriceData;
+    } else {
+      return {
+        price: this.price,
+        priceDDV: this.priceDDV,
+      };
+    }
   }
 
-  if (this.type == "A" && !this.endDate) {
+  if (this.label == "A" && !this.endDate) {
     const classPriceData = {
       price: this.price,
       priceDDV: this.priceDDV,

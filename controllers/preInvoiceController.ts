@@ -13,6 +13,7 @@ import {
 import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
 import { deleteOne } from "./handlerFactory";
 import APIFeatures from "../utils/apiFeatures";
+import { sendInvoice } from "../utils/email";
 
 export const deletePreInvoice = deleteOne(PreInvoice);
 
@@ -199,6 +200,54 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
 
   preInvoice.payed = true;
   await preInvoice.save({ validateBeforeSave: false });
+
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const invoiceBuyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? invoiceBuyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.company.name
+      ? invoice.company.name
+      : invoice.buyer
+      ? `${invoiceBuyer.firstName} ${invoiceBuyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? invoiceBuyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? invoiceBuyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? invoiceBuyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(201).json({
     status: "success",

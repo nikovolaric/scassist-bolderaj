@@ -11,6 +11,7 @@ import {
   getOneClass,
   getSingleDateClasses,
   getSingleDateClassesReception,
+  removeUserFromGroup,
   signUpChildForClassOnline,
   signUpForClassOnline,
   updateClass,
@@ -45,5 +46,6 @@ router.get("/:id", getOneClass);
 router.use(restrictTo(["admin"]));
 router.route("/").get(getAllClasses).post(createClass);
 router.route("/:id").patch(updateClass).delete(deleteClass);
+router.patch("/:id/removeuser", removeUserFromGroup);
 
 export default router;

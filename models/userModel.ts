@@ -200,6 +200,11 @@ userSchema.pre("save", async function (next) {
   if (this.password) {
     this.password = await bcrypt.hash(this.password, 12);
     this.passwordConfirm = undefined;
+
+    this.email = this.email.toLowerCase().trim();
+
+    this.firstName = this.firstName.trim();
+    this.lastName = this.lastName.trim();
   }
 
   next();

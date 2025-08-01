@@ -11,6 +11,7 @@ import {
   connectWithFURS,
   generateJSONInvoice,
 } from "../utils/createJSONInvoice";
+import { sendInvoice, sendPreInvoice } from "../utils/email";
 
 export const getAllClasses = getAll(Class);
 export const updateClass = updateOne(Class);
@@ -27,7 +28,6 @@ export const getMultipleDateClasses = catchAsync(async function (
     $expr: {
       $gt: [{ $size: "$dates" }, 1],
     },
-    hidden: { $ne: true },
     ...query,
     ...(className && {
       "className.sl": { $regex: className, $options: "i" },
@@ -45,18 +45,20 @@ export const getSingleDateClasses = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const allClasses = await Class.find({
-    dates: { $size: 1 },
-    hidden: { $ne: true },
-    ...req.query,
-  }).sort({
+  const { ageGroup, ...rest } = req.query;
+
+  const query: any = { dates: { $size: 1 }, ...rest };
+
+  if (ageGroup) {
+    query.ageGroup = { $in: (ageGroup as string).split(",") };
+  }
+
+  const allClasses = await Class.find(query).sort({
     dates: 1,
   });
 
   const classes = allClasses.filter(
-    (el) =>
-      new Date(el.dates[0]).toLocaleDateString("sl-SI") >=
-      new Date().toLocaleDateString("sl-SI")
+    (el) => new Date(el.dates[0]) >= new Date()
   );
 
   res.status(200).json({
@@ -72,7 +74,6 @@ export const getSingleDateClassesReception = catchAsync(async function (
 ) {
   const classes = await Class.find({
     dates: { $size: 1 },
-    hidden: { $ne: true },
     ...req.query,
   }).sort({
     dates: 1,
@@ -174,37 +175,34 @@ export const signUpForClassOnline = catchAsync(async function (
     await currentClass.save({ validateBeforeSave: false });
   }
 
-  if (req.body.articles.paymentMethod === "") {
+  if (
+    req.body.articles.paymentMethod === "online" ||
+    req.body.paymentMethod === "paypal"
+  ) {
     const lastInvoice = await Invoice.findOne({
       "invoiceData.deviceNo": "BLAGO",
     }).sort({
       "invoiceData.invoiceNo": -1,
     });
 
-    //ustvari invoice in podrdi na FURS
     const invoiceData = {
       dateTime: new Date(),
       taxNumber: process.env.BOLDERAJ_TAX_NUMBER,
       issueDateTime: new Date(),
       numberingStructure: "C",
-      businessPremiseID: "B1",
+      businessPremiseID: process.env.BUSINESSID as string,
       electronicDeviceID: "BLAGO",
-      invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.endDate
-        ? article.classPriceData.price
-        : article.price,
-      paymentAmount: article.endDate
-        ? article.classPriceData.price
-        : article.price,
+      invoiceNumber: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
+      invoiceAmount: article.classPriceData.price,
+      paymentAmount: article.classPriceData.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.endDate
-            ? article.classPriceData.price
-            : article.price,
-          taxAmount: article.endDate
-            ? article.classPriceData.price * article.taxRate
-            : article.price * article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          taxAmount:
+            article.classPriceData.priceDDV - article.classPriceData.price,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -214,7 +212,6 @@ export const signUpForClassOnline = catchAsync(async function (
 
     const EOR = await connectWithFURS(JSONInvoice);
 
-    //shrani invoice v bazo
     const invoiceDataToSave = {
       paymentDueDate: new Date(),
       buyer: currentUser.id,
@@ -226,23 +223,70 @@ export const signUpForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.endDate
-          ? article.classPriceData.price
-          : article.price,
-        taxAmount: article.endDate
-          ? article.classPriceData.price * article.taxRate
-          : article.price * article.taxRate,
+        taxableAmount: article.classPriceData.price,
+        amountWithTax: article.classPriceData.priceDDV,
         quantity: 1,
         item: article.name.sl,
       },
-      paymentMethod: "online",
+      paymentMethod: req.body.paymentMethod,
       ZOI,
       EOR,
     };
 
-    await Invoice.create(invoiceDataToSave);
+    const invoice = await Invoice.create(invoiceDataToSave);
 
-    return next();
+    await invoice.populate({
+      path: "buyer issuer",
+      select:
+        "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+    });
+
+    const buyer = invoice.buyer as any;
+
+    const mailOptions = {
+      email: invoice.buyer ? buyer.email : invoice.recepient.email,
+      invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+      name: invoice.company.name
+        ? invoice.company.name
+        : invoice.buyer
+        ? `${buyer.firstName} ${buyer.lastName}`
+        : invoice.recepient.name,
+      companyName: invoice.company.name,
+      taxNumber: invoice.company.taxNumber,
+      address: invoice.company.address
+        ? invoice.company.address
+        : invoice.buyer
+        ? buyer.address
+        : invoice.recepient.address,
+      postalCode: invoice.company.postalCode
+        ? invoice.company.postalCode
+        : invoice.buyer
+        ? buyer.postalCode
+        : invoice.recepient.postalCode,
+      city: invoice.company.city
+        ? invoice.company.city
+        : invoice.buyer
+        ? buyer.city
+        : invoice.recepient.city,
+      invoiceDate: invoice.invoiceDate,
+      invoiceCompletionDate: invoice.serviceCompletionDate,
+      reference: invoice.reference,
+      cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+      dueDate: invoice.paymentDueDate,
+      paymentMethod: invoice.paymentMethod,
+      items: invoice.soldItems,
+      totalAmount: invoice.totalAmount,
+      totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+      EOR: invoice.EOR,
+      ZOI: invoice.ZOI,
+    };
+
+    await sendInvoice(mailOptions);
+
+    res.status(200).json({
+      status: "success",
+      invoice,
+    });
   }
 
   if (req.body.articles.paymentMethod === "preInvoice") {
@@ -259,14 +303,10 @@ export const signUpForClassOnline = catchAsync(async function (
       items: [
         {
           taxRate: article.taxRate,
-          taxableAmount: article.endDate
-            ? article.classPriceData.price
-            : article.price,
-          taxAmount:
-            (article.endDate ? article.classPriceData.price : article.price) *
-            article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          amountWithTax: article.classPriceData.priceDDV,
           quantity: 1,
-          item: `${article.name.sl}`,
+          item: article.name.sl,
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -275,6 +315,49 @@ export const signUpForClassOnline = catchAsync(async function (
     };
 
     const preInvoice = await PreInvoice.create(preInvoiceData);
+
+    await preInvoice.populate({
+      path: "buyer",
+      select: "email firstName lastName address postalCode city",
+    });
+
+    const buyer = preInvoice.buyer as any;
+
+    const mailOptions = {
+      email: preInvoice.buyer ? buyer.email : preInvoice.recepient.email,
+      preInvoiceNumber: `${
+        preInvoice.preInvoiceNumber
+      }-${new Date().getFullYear()}`,
+      invoiceDate: preInvoice.date,
+      companyName: preInvoice.company.name,
+      reference: preInvoice.reference,
+      name: buyer
+        ? `${buyer.firstName} ${buyer.lastName}`
+        : preInvoice.recepient.name,
+      address: preInvoice.company.address
+        ? preInvoice.company.address
+        : buyer
+        ? buyer.address
+        : preInvoice.recepient.address,
+      postalCode: preInvoice.company.postalCode
+        ? preInvoice.company.postalCode
+        : buyer
+        ? buyer.postalCode
+        : preInvoice.recepient.postalCode,
+      city: preInvoice.company.city
+        ? preInvoice.company.city
+        : buyer
+        ? buyer.city
+        : preInvoice.recepient.city,
+      taxNumber: preInvoice.company.taxNumber,
+      paymentMethod: "nakazilo",
+      dueDate: preInvoice.dueDate,
+      items: preInvoice.items,
+      totalAmount: preInvoice.totalAmount,
+      taxAmount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
+    };
+
+    await sendPreInvoice(mailOptions);
 
     res.status(200).json({
       status: "success",
@@ -333,39 +416,34 @@ export const signUpChildForClassOnline = catchAsync(async function (
     await currentClass.save({ validateBeforeSave: false });
   }
 
-  if (req.body.articles.paymentMethod === "") {
-    //preveri stripe plačilo
-
+  if (
+    req.body.articles.paymentMethod === "online" ||
+    req.body.paymentMethod === "paypal"
+  ) {
     const lastInvoice = await Invoice.findOne({
       "invoiceData.deviceNo": "BLAGO",
     }).sort({
       "invoiceData.invoiceNo": -1,
     });
 
-    //ustvari invoice in podrdi na FURS
     const invoiceData = {
       dateTime: new Date(),
       taxNumber: process.env.BOLDERAJ_TAX_NUMBER,
       issueDateTime: new Date(),
       numberingStructure: "C",
-      businessPremiseID: "B1",
+      businessPremiseID: process.env.BUSINESSID as string,
       electronicDeviceID: "BLAGO",
-      invoiceNumber: lastInvoice ? lastInvoice.invoiceData.invoiceNo + 1 : 1,
-      invoiceAmount: article.endDate
-        ? article.classPriceData.price
-        : article.price,
-      paymentAmount: article.endDate
-        ? article.classPriceData.price
-        : article.price,
+      invoiceNumber: lastInvoice
+        ? Number(lastInvoice.invoiceData.invoiceNo) + 1
+        : 1,
+      invoiceAmount: article.classPriceData.price,
+      paymentAmount: article.classPriceData.price,
       taxes: [
         {
           taxRate: article.taxRate * 100,
-          taxableAmount: article.endDate
-            ? article.classPriceData.price
-            : article.price,
-          taxAmount: article.endDate
-            ? article.classPriceData.price * article.taxRate
-            : article.price * article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          taxAmount:
+            article.classPriceData.priceDDV - article.classPriceData.price,
         },
       ],
       operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
@@ -375,7 +453,6 @@ export const signUpChildForClassOnline = catchAsync(async function (
 
     const EOR = await connectWithFURS(JSONInvoice);
 
-    //shrani invoice v bazo
     const invoiceDataToSave = {
       paymentDueDate: new Date(),
       buyer: req.user.id,
@@ -387,23 +464,70 @@ export const signUpChildForClassOnline = catchAsync(async function (
       },
       soldItems: {
         taxRate: article.taxRate,
-        taxableAmount: article.endDate
-          ? article.classPriceData.price
-          : article.price,
-        taxAmount: article.endDate
-          ? article.classPriceData.price * article.taxRate
-          : article.price * article.taxRate,
+        taxableAmount: article.classPriceData.price,
+        amountWithTax: article.classPriceData.priceDDV,
         quantity: 1,
         item: article.name.sl,
       },
-      paymentMethod: "online",
+      paymentMethod: req.body.paymentMethod,
       ZOI,
       EOR,
     };
 
-    await Invoice.create(invoiceDataToSave);
+    const invoice = await Invoice.create(invoiceDataToSave);
 
-    return next();
+    await invoice.populate({
+      path: "buyer issuer",
+      select:
+        "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+    });
+
+    const buyer = invoice.buyer as any;
+
+    const mailOptions = {
+      email: invoice.buyer ? buyer.email : invoice.recepient.email,
+      invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+      name: invoice.company.name
+        ? invoice.company.name
+        : invoice.buyer
+        ? `${buyer.firstName} ${buyer.lastName}`
+        : invoice.recepient.name,
+      companyName: invoice.company.name,
+      taxNumber: invoice.company.taxNumber,
+      address: invoice.company.address
+        ? invoice.company.address
+        : invoice.buyer
+        ? buyer.address
+        : invoice.recepient.address,
+      postalCode: invoice.company.postalCode
+        ? invoice.company.postalCode
+        : invoice.buyer
+        ? buyer.postalCode
+        : invoice.recepient.postalCode,
+      city: invoice.company.city
+        ? invoice.company.city
+        : invoice.buyer
+        ? buyer.city
+        : invoice.recepient.city,
+      invoiceDate: invoice.invoiceDate,
+      invoiceCompletionDate: invoice.serviceCompletionDate,
+      reference: invoice.reference,
+      cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+      dueDate: invoice.paymentDueDate,
+      paymentMethod: invoice.paymentMethod,
+      items: invoice.soldItems,
+      totalAmount: invoice.totalAmount,
+      totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+      EOR: invoice.EOR,
+      ZOI: invoice.ZOI,
+    };
+
+    await sendInvoice(mailOptions);
+
+    res.status(200).json({
+      status: "success",
+      invoice,
+    });
   }
 
   if (req.body.articles.paymentMethod === "preInvoice") {
@@ -420,14 +544,10 @@ export const signUpChildForClassOnline = catchAsync(async function (
       items: [
         {
           taxRate: article.taxRate,
-          taxableAmount: article.endDate
-            ? article.classPriceData.price
-            : article.price,
-          taxAmount:
-            (article.endDate ? article.classPriceData.price : article.price) *
-            article.taxRate,
+          taxableAmount: article.classPriceData.price,
+          amountWithTax: article.classPriceData.priceDDV,
           quantity: 1,
-          item: `${article.name}`,
+          item: article.name.sl,
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -436,6 +556,49 @@ export const signUpChildForClassOnline = catchAsync(async function (
     };
 
     const preInvoice = await PreInvoice.create(preInvoiceData);
+
+    await preInvoice.populate({
+      path: "buyer",
+      select: "email firstName lastName address postalCode city",
+    });
+
+    const buyer = preInvoice.buyer as any;
+
+    const mailOptions = {
+      email: preInvoice.buyer ? buyer.email : preInvoice.recepient.email,
+      preInvoiceNumber: `${
+        preInvoice.preInvoiceNumber
+      }-${new Date().getFullYear()}`,
+      invoiceDate: preInvoice.date,
+      companyName: preInvoice.company.name,
+      reference: preInvoice.reference,
+      name: buyer
+        ? `${buyer.firstName} ${buyer.lastName}`
+        : preInvoice.recepient.name,
+      address: preInvoice.company.address
+        ? preInvoice.company.address
+        : buyer
+        ? buyer.address
+        : preInvoice.recepient.address,
+      postalCode: preInvoice.company.postalCode
+        ? preInvoice.company.postalCode
+        : buyer
+        ? buyer.postalCode
+        : preInvoice.recepient.postalCode,
+      city: preInvoice.company.city
+        ? preInvoice.company.city
+        : buyer
+        ? buyer.city
+        : preInvoice.recepient.city,
+      taxNumber: preInvoice.company.taxNumber,
+      paymentMethod: "nakazilo",
+      dueDate: preInvoice.dueDate,
+      items: preInvoice.items,
+      totalAmount: preInvoice.totalAmount,
+      taxAmount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
+    };
+
+    await sendPreInvoice(mailOptions);
 
     res.status(200).json({
       status: "success",
@@ -516,6 +679,7 @@ export const getMyClasses = catchAsync(async function (
 ) {
   const classes = await Class.find({
     students: { $elemMatch: { student: req.user._id } },
+    dates: { $elemMatch: { $gt: new Date() } },
   }).select("name teacher dates time className");
 
   res.status(200).json({
@@ -539,10 +703,34 @@ export const getChildClasses = catchAsync(async function (
 
   const classes = await Class.find({
     students: { $elemMatch: { student: childId } },
+    dates: { $elemMatch: { $gt: new Date() } },
   }).select("name teacher dates time className");
 
   res.status(200).json({
     status: "success",
     classes,
+  });
+});
+
+export const removeUserFromGroup = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  console.log(req.body);
+
+  classInfo.students = classInfo.students.filter(
+    (classStudent) => classStudent.student.toString() !== req.body.student
+  );
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
   });
 });
