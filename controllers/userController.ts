@@ -354,10 +354,12 @@ export const getUserClasses = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const dayBefore = new Date().setDate(new Date().getDate() - 1);
+
   const classes = await Class.find({
     students: { $elemMatch: { student: req.params.id } },
     $expr: { $gt: [{ $size: "$dates" }, 1] },
-    dates: { $elemMatch: { $gt: new Date() } },
+    dates: { $elemMatch: { $gt: dayBefore } },
   }).select("dates time className");
 
   res.status(200).json({
@@ -372,9 +374,11 @@ export const getUserActivities = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const dayBefore = new Date().setDate(new Date().getDate() - 1);
+
   const classes = await Class.find({
     students: { $elemMatch: { student: req.params.id } },
-    dates: { $elemMatch: { $gt: new Date() }, $size: 1 },
+    dates: { $elemMatch: { $gt: dayBefore }, $size: 1 },
   }).select("dates time className");
 
   res.status(200).json({

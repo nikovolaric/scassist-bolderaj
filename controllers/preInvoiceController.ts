@@ -118,7 +118,6 @@ export const createPreInvoice = catchAsync(async function (
     date: req.body.date,
     dueDate: req.body.dueDate,
     items: soldItems,
-    user: user?._id,
   };
 
   const preInvoice = await PreInvoice.create(preInvoiceDataToSave);
@@ -367,7 +366,7 @@ export const getMyUnpaidPreInvoices = catchAsync(async function (
   next: NextFunction
 ) {
   const preInvoices = await PreInvoice.find({
-    user: req.user._id,
+    buyer: req.user._id,
     payed: { $ne: true },
   });
 
@@ -387,7 +386,7 @@ export const downloadPreInvoiceFromClass = catchAsync(async function (
 
   const preInvoice = await PreInvoice.findOne({
     classes: { $in: [classId] },
-    user: req.user._id,
+    buyer: req.user._id,
   });
 
   if (!preInvoice) return next(new AppError("Preinvoice not found!", 404));
@@ -432,7 +431,7 @@ export const downloadMyPreInvoice = catchAsync(async function (
 
   const preInvoice = await PreInvoice.findOne({
     _id: id,
-    user: req.user.id,
+    buyer: req.user.id,
   });
 
   if (!preInvoice) return next(new AppError("Preinvoice not found!", 404));
@@ -474,7 +473,7 @@ export const getUserUnpaidPreinvoices = catchAsync(async function (
   next: NextFunction
 ) {
   const preInvoices = await PreInvoice.find({
-    user: req.params.id,
+    buyer: req.params.id,
     payed: { $ne: true },
   });
 
@@ -597,6 +596,53 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
 
   preInvoice.payed = true;
   await preInvoice.save({ validateBeforeSave: false });
+  await invoice.populate({
+    path: "buyer issuer",
+    select:
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+  });
+
+  const invoiceBuyer = invoice.buyer as any;
+
+  const mailOptions = {
+    email: invoice.buyer ? invoiceBuyer.email : invoice.recepient.email,
+    invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
+    name: invoice.company.name
+      ? invoice.company.name
+      : invoice.buyer
+      ? `${invoiceBuyer.firstName} ${invoiceBuyer.lastName}`
+      : invoice.recepient.name,
+    companyName: invoice.company.name,
+    taxNumber: invoice.company.taxNumber,
+    address: invoice.company.address
+      ? invoice.company.address
+      : invoice.buyer
+      ? invoiceBuyer.address
+      : invoice.recepient.address,
+    postalCode: invoice.company.postalCode
+      ? invoice.company.postalCode
+      : invoice.buyer
+      ? invoiceBuyer.postalCode
+      : invoice.recepient.postalCode,
+    city: invoice.company.city
+      ? invoice.company.city
+      : invoice.buyer
+      ? invoiceBuyer.city
+      : invoice.recepient.city,
+    invoiceDate: invoice.invoiceDate,
+    invoiceCompletionDate: invoice.serviceCompletionDate,
+    reference: invoice.reference,
+    cashier: invoice.issuerNickname ? invoice.issuerNickname : "Default",
+    dueDate: invoice.paymentDueDate,
+    paymentMethod: invoice.paymentMethod,
+    items: invoice.soldItems,
+    totalAmount: invoice.totalAmount,
+    totalTaxAmount: invoice.totalAmount - invoice.totalTaxableAmount,
+    EOR: invoice.EOR,
+    ZOI: invoice.ZOI,
+  };
+
+  await sendInvoice(mailOptions);
 
   res.status(201).json({
     status: "success",

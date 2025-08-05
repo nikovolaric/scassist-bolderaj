@@ -58,7 +58,9 @@ export const getSingleDateClasses = catchAsync(async function (
   });
 
   const classes = allClasses.filter(
-    (el) => new Date(el.dates[0]) >= new Date()
+    (el) =>
+      new Date(el.dates[0]) >=
+      new Date(new Date().setDate(new Date().getDate() - 1))
   );
 
   res.status(200).json({
@@ -310,7 +312,7 @@ export const signUpForClassOnline = catchAsync(async function (
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      user: req.user._id,
+      buyer: req.user._id,
       classes,
     };
 
@@ -551,7 +553,7 @@ export const signUpChildForClassOnline = catchAsync(async function (
         },
       ],
       dueDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      user: req.user._id,
+      buyer: req.user._id,
       classes,
     };
 
@@ -677,9 +679,11 @@ export const getMyClasses = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
+  const dayBefore = new Date().setDate(new Date().getDate() - 1);
+
   const classes = await Class.find({
     students: { $elemMatch: { student: req.user._id } },
-    dates: { $elemMatch: { $gt: new Date() } },
+    dates: { $elemMatch: { $gt: dayBefore } },
   }).select("name teacher dates time className");
 
   res.status(200).json({
@@ -701,9 +705,11 @@ export const getChildClasses = catchAsync(async function (
   )
     return next(new AppError("This is not your child", 403));
 
+  const dayBefore = new Date().setDate(new Date().getDate() - 1);
+
   const classes = await Class.find({
     students: { $elemMatch: { student: childId } },
-    dates: { $elemMatch: { $gt: new Date() } },
+    dates: { $elemMatch: { $gt: dayBefore } },
   }).select("name teacher dates time className");
 
   res.status(200).json({
