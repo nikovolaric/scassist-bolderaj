@@ -461,26 +461,14 @@ export const getMonthlyReport = catchAsync(async function (
   // === 1. TABELA: DDV PO STOPNJAH ===
   sheet1.addRow(["Davčna stopnja", "Osnova", "DDV", "Skupaj"]);
 
-  let totalBase = 0;
-  let totalTax = 0;
-  let totalWithTax = 0;
-
   reportNONSI[0].taxDetails.forEach(
     (tax: { taxRate: number; base: number; tax: number; total: number }) => {
-      // obraten izračun osnove in DDV iz skupnega zneska (če želiš biti dosleden)
       const reverseTax =
         ((tax.taxRate * 100) / (1 + tax.taxRate) / 100) * tax.total;
-      const reverseBase = tax.total - reverseTax;
 
-      // seštevanje za skupno vrstico
-      totalBase += reverseBase;
-      totalTax += reverseTax;
-      totalWithTax += tax.total;
-
-      // vrstica za posamezno davčno stopnjo
       sheet1.addRow([
         tax.taxRate * 100 + " %",
-        reverseBase.toFixed(2),
+        (tax.total - reverseTax).toFixed(2),
         reverseTax.toFixed(2),
         tax.total.toFixed(2),
       ]);
@@ -489,14 +477,7 @@ export const getMonthlyReport = catchAsync(async function (
 
   sheet1.addRow([]);
 
-  // SKUPAJ vrstica z dejansko seštetimi vrednostmi
-  sheet1.addRow([
-    "Skupaj",
-    totalBase.toFixed(2),
-    totalTax.toFixed(2),
-    totalWithTax.toFixed(2),
-  ]);
-
+  sheet1.addRow(["Skupaj", "", "", reportNONSI[0].totalAmount.toFixed(2)]);
   sheet1.addRow([]);
 
   sheet1.addRow(["Način plačila", "Znesek"]);
