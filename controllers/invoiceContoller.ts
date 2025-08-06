@@ -463,22 +463,35 @@ export const getMonthlyReport = catchAsync(async function (
 
   reportNONSI[0].taxDetails.forEach(
     (tax: { taxRate: number; base: number; tax: number; total: number }) => {
-      sheet1.addRow([
+      const reverseTax =
+        ((tax.taxRate * 100) / (1 + tax.taxRate) / 100) * tax.total;
+
+      return sheet1.addRow([
         tax.taxRate * 100 + " %",
-        tax.base.toFixed(2),
-        tax.tax.toFixed(2),
+        (tax.total - reverseTax).toFixed(2),
+        reverseTax.toFixed(2),
         tax.total.toFixed(2),
       ]);
     }
   );
 
   sheet1.addRow([]);
+
+  // Preračun obratne davčne za total
+  const totalAmount = reportNONSI[0].totalAmount;
+  const averageTaxRate =
+    reportNONSI[0].totalTaxAmount / reportNONSI[0].totalTaxableAmount;
+  const reverseTotalTax =
+    ((averageTaxRate * 100) / (1 + averageTaxRate) / 100) * totalAmount;
+  const reverseBase = totalAmount - reverseTotalTax;
+
   sheet1.addRow([
     "Skupaj",
-    reportNONSI[0].totalTaxableAmount.toFixed(2),
-    reportNONSI[0].totalTaxAmount.toFixed(2),
-    reportNONSI[0].totalAmount.toFixed(2),
+    reverseBase.toFixed(2),
+    reverseTotalTax.toFixed(2),
+    totalAmount.toFixed(2),
   ]);
+
   sheet1.addRow([]);
 
   sheet1.addRow(["Način plačila", "Znesek"]);
