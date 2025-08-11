@@ -179,7 +179,7 @@ export const signUpForClassOnline = catchAsync(async function (
 
   if (
     req.body.articles.paymentMethod === "online" ||
-    req.body.paymentMethod === "paypal"
+    req.body.articles.paymentMethod === "paypal"
   ) {
     const lastInvoice = await Invoice.findOne({
       "invoiceData.deviceNo": "BLAGO",
@@ -230,7 +230,7 @@ export const signUpForClassOnline = catchAsync(async function (
         quantity: 1,
         item: article.name.sl,
       },
-      paymentMethod: req.body.paymentMethod,
+      paymentMethod: req.body.articles.paymentMethod,
       ZOI,
       EOR,
     };
