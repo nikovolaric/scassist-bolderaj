@@ -1279,7 +1279,9 @@ export const confirmFiscalInvoiceLater = catchAsync(async function (
     const tax = {
       taxRate: el.taxRate * 100,
       taxableAmount: el.taxableAmount * el.quantity,
-      taxAmount: el.amountWithTax * el.quantity,
+      taxAmount:
+        parseFloat((el.amountWithTax - el.taxableAmount).toFixed(2)) *
+        el.quantity,
     };
     return tax;
   });
