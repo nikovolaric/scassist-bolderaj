@@ -621,8 +621,9 @@ export const checkAttendance = catchAsync(async function (
   const currentUser = req.user;
 
   if (
-    currentUser.id !== currentClass.teacher.toString() &&
-    (!req.user.role.includes("admin") || !req.user.role.includes("employee"))
+    currentUser.role.includes("coach") &&
+    currentUser.role.length < 3 &&
+    currentUser.id !== currentClass.teacher.toString()
   )
     return next(new AppError("You are not the teacher of this class", 401));
 
@@ -727,11 +728,31 @@ export const removeUserFromGroup = catchAsync(async function (
 
   if (!classInfo) return next(new AppError("Class not found!", 404));
 
-  console.log(req.body);
-
   classInfo.students = classInfo.students.filter(
     (classStudent) => classStudent.student.toString() !== req.body.student
   );
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
+  });
+});
+
+export const addUserToGroup = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  classInfo.students = [
+    ...classInfo.students,
+    { student: req.body.student, attendance: [] },
+  ];
 
   await classInfo.save({ validateBeforeSave: false });
 

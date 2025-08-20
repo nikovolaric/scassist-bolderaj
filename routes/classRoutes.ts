@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
+  addUserToGroup,
   checkAttendance,
   createClass,
   deleteClass,
@@ -47,5 +48,6 @@ router.use(restrictTo(["admin"]));
 router.route("/").get(getAllClasses).post(createClass);
 router.route("/:id").patch(updateClass).delete(deleteClass);
 router.patch("/:id/removeuser", removeUserFromGroup);
+router.patch("/:id/addUser", addUserToGroup);
 
 export default router;
