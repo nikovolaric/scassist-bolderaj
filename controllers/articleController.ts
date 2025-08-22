@@ -886,8 +886,9 @@ export const buyArticlesInPerson = catchAsync(async function (
             return next(new AppError("Class is full", 400));
 
           if (
-            currentClass.students.map((student) => student.student === user._id)
-              .length > 0
+            currentClass.students.find((studentData) =>
+              user._id.equals(studentData.student.toString())
+            )
           )
             return next(
               new AppError("You are already signed up for this class", 400)
