@@ -13,7 +13,7 @@ import {
 import { generatePreInvoicePDFBuffer } from "../templates/sendPreInvoiceTemplate";
 import { deleteOne } from "./handlerFactory";
 import APIFeatures from "../utils/apiFeatures";
-import { sendInvoice } from "../utils/email";
+import { sendInvoice, sendPreInvoice } from "../utils/email";
 
 export const deletePreInvoice = deleteOne(PreInvoice);
 
@@ -63,7 +63,10 @@ export const createPreInvoice = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.body.buyer);
+  const user = await User.findById(req.body.buyer).populate({
+    path: "parent",
+    select: "email",
+  });
 
   const cart = await Promise.all(
     req.body.articles.map(
@@ -121,6 +124,51 @@ export const createPreInvoice = catchAsync(async function (
   };
 
   const preInvoice = await PreInvoice.create(preInvoiceDataToSave);
+
+  if (req.body.send) {
+    const buyer = user as any;
+    const parent = user?.parent as any;
+
+    const mailOptions = {
+      email: parent
+        ? parent.email
+        : preInvoice.buyer
+        ? buyer.email
+        : preInvoice.recepient.email,
+      preInvoiceNumber: `${
+        preInvoice.preInvoiceNumber
+      }-${new Date().getFullYear()}`,
+      invoiceDate: preInvoice.date,
+      companyName: preInvoice.company.name,
+      reference: preInvoice.reference,
+      name: buyer
+        ? `${buyer.firstName} ${buyer.lastName}`
+        : preInvoice.recepient.name,
+      address: preInvoice.company.address
+        ? preInvoice.company.address
+        : buyer
+        ? buyer.address
+        : preInvoice.recepient.address,
+      postalCode: preInvoice.company.postalCode
+        ? preInvoice.company.postalCode
+        : buyer
+        ? buyer.postalCode
+        : preInvoice.recepient.postalCode,
+      city: preInvoice.company.city
+        ? preInvoice.company.city
+        : buyer
+        ? buyer.city
+        : preInvoice.recepient.city,
+      taxNumber: preInvoice.company.taxNumber,
+      paymentMethod: "nakazilo",
+      dueDate: preInvoice.dueDate,
+      items: preInvoice.items,
+      totalAmount: preInvoice.totalAmount,
+      taxAmount: preInvoice.totalAmount - preInvoice.totalTaxableAmount,
+    };
+
+    await sendPreInvoice(mailOptions);
+  }
 
   res.status(200).json({
     status: "success",
@@ -203,13 +251,19 @@ export const createInvoiceFromPreInvoice = catchAsync(async function (
   await invoice.populate({
     path: "buyer issuer",
     select:
-      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address parent",
   });
 
   const invoiceBuyer = invoice.buyer as any;
 
+  const parent = await User.findById(invoiceBuyer.parent);
+
   const mailOptions = {
-    email: invoice.buyer ? invoiceBuyer.email : invoice.recepient.email,
+    email: parent
+      ? parent.email
+      : invoice.buyer
+      ? invoiceBuyer.email
+      : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     name: invoice.company.name
       ? invoice.company.name
@@ -599,13 +653,18 @@ export const createInvoiceFromPreInvoiceReception = catchAsync(async function (
   await invoice.populate({
     path: "buyer issuer",
     select:
-      "email firstName lastName phoneNumber invoiceNickname postalCode city address",
+      "email firstName lastName phoneNumber invoiceNickname postalCode city address parent",
   });
 
   const invoiceBuyer = invoice.buyer as any;
+  const parent = await User.findById(invoiceBuyer.parent);
 
   const mailOptions = {
-    email: invoice.buyer ? invoiceBuyer.email : invoice.recepient.email,
+    email: parent
+      ? parent.email
+      : invoice.buyer
+      ? invoiceBuyer.email
+      : invoice.recepient.email,
     invoiceNumber: `${invoice.invoiceData.businessPremises}-${invoice.invoiceData.deviceNo}-${invoice.invoiceData.invoiceNo}-${invoice.invoiceData.year}`,
     name: invoice.company.name
       ? invoice.company.name

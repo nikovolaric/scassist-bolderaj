@@ -14,7 +14,7 @@ export const getUser = catchAsync(async function (
 ) {
   const user = await User.findById(req.params.id).populate({
     path: "parent",
-    select: "firstName lastName birthDate",
+    select: "firstName lastName birthDate email",
   });
 
   if (!user) {

@@ -356,6 +356,18 @@ export const login = catchAsync(async function (
     return next(new AppError("Incorrect username or password", 401));
   }
 
+  // if (user.age >= 18 && user.parent) {
+  //   user.parent = undefined;
+
+  //   const parent = await User.findById(user.parent);
+
+  //   if (parent) {
+  //     parent.parentOf = parent.parentOf.filter(
+  //       (el) => !user._id.equals(el.child)
+  //     );
+  //   }
+  // }
+
   //3. If everything is ok, send token to client
   createSendToken(user, 200, res);
 });

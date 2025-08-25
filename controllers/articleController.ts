@@ -779,7 +779,7 @@ export const buyArticlesInPerson = catchAsync(async function (
         );
       }
 
-      if (el.useNow && !el.otherId) {
+      if (el.useNow && !el.otherId && !el.gift) {
         const data: any = {
           name: el.article.name,
           type: el.article.type,
