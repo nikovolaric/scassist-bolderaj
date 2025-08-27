@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
+  changePaymentMethodReception,
   confirmFiscalInvoiceLater,
   createInvoice,
   downloadInvoicePDF,
@@ -31,6 +32,7 @@ router.use(restrictTo(["admin", "employee"]));
 router.get("/myissuedtoday", myIssuedInvoices);
 router.get("/download/:id", downloadInvoicePDF);
 router.post("/stornoreception/:id", stornoInvoiceReception);
+router.patch("/updatepaymentmethod/:id", changePaymentMethodReception);
 
 router.use(restrictTo(["admin"]));
 

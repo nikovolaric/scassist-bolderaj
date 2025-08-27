@@ -1162,6 +1162,32 @@ export const stornoInvoice = catchAsync(async function (
   });
 });
 
+export const changePaymentMethodReception = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invoice = await Invoice.findById(req.params.id);
+
+  if (!invoice) {
+    return next(new AppError("Invoice does not exist!", 404));
+  }
+
+  const { paymentMethod } = req.body;
+
+  if (paymentMethod !== "card" && paymentMethod !== "gotovina") {
+    return next(new AppError("Can not preform this action!", 400));
+  }
+
+  invoice.paymentMethod = paymentMethod;
+
+  await invoice.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+  });
+});
+
 export const stornoInvoiceReception = catchAsync(async function (
   req: Request,
   res: Response,
