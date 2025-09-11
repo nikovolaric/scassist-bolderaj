@@ -22,8 +22,7 @@ export const getAllPreinvoices = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const { q, ...query } = req.query;
-
+  const { q, payed, ...query } = req.query;
   let filter = {};
 
   if (q && typeof q === "string") {
@@ -35,6 +34,10 @@ export const getAllPreinvoices = catchAsync(async function (
         { "recepient.name": { $regex: regex } },
       ],
     };
+  }
+
+  if (payed) {
+    filter = { ...filter, payed: { $ne: true } };
   }
 
   const features = new APIFeatures(
