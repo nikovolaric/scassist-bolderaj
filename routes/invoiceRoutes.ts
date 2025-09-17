@@ -2,6 +2,7 @@ import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
   changePaymentMethodReception,
+  checkNotConfirmed,
   confirmFiscalInvoiceLater,
   createInvoice,
   downloadInvoicePDF,
@@ -46,7 +47,8 @@ router.post("/getmothlyaccountingreport", getMonthlyReport);
 router.post("/confirmfiscal/:id", confirmFiscalInvoiceLater);
 
 router.post("/premise", registerPremise);
-router.post("/fiscalecho", echoFiscal);
+router.get("/fiscalecho", echoFiscal);
+router.get("/checknotconfiremd", checkNotConfirmed);
 router.post("/issueempty", issueEmptyInvoice);
 router.post("/storno/:id", stornoInvoice);
 

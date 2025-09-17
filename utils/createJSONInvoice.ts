@@ -416,11 +416,11 @@ export async function connectWithFURS(data: any) {
     readFileSync(process.env.BLAGAJNE_PATH as string),
   ];
 
-  const derBuffer = readFileSync(process.env.DAVPOT_PATH as string);
-  const base64Cert = derBuffer.toString("base64");
-  const appCert = `-----BEGIN CERTIFICATE-----\n${base64Cert
-    .match(/.{1,64}/g)!
-    .join("\n")}\n-----END CERTIFICATE-----`;
+  const appCert = readFileSync(process.env.DAVPOT_PATH as string);
+  // const base64Cert = derBuffer.toString("base64");
+  // const appCert = `-----BEGIN CERTIFICATE-----\n${base64Cert
+  //   .match(/.{1,64}/g)!
+  //   .join("\n")}\n-----END CERTIFICATE-----`;
 
   const myCert = readFileSync(process.env.MYCERT_PATH as string);
 

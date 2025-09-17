@@ -1340,6 +1340,60 @@ export const confirmFiscalInvoiceLater = catchAsync(async function (
   });
 });
 
+export const checkNotConfirmed = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const invoices = await Invoice.find({ EOR: { $exists: false } });
+
+  const data = await echoFurs();
+
+  if (data.EchoResponse === "furs" && process.env.NODE_ENV === "production") {
+    for (const invoice of invoices) {
+      const taxes = invoice.soldItems.map((el) => {
+        const tax = {
+          taxRate: el.taxRate * 100,
+          taxableAmount: el.taxableAmount * el.quantity,
+          taxAmount:
+            parseFloat((el.amountWithTax - el.taxableAmount).toFixed(2)) *
+            el.quantity,
+        };
+        return tax;
+      });
+
+      const invoiceData = {
+        dateTime: new Date(),
+        issueDateTime: new Date(invoice.invoiceDate),
+        numberingStructure: "C",
+        businessPremiseID: process.env.BUSINESSID as string,
+        electronicDeviceID: invoice.invoiceData.deviceNo,
+        invoiceNumber: invoice.invoiceData.invoiceNo,
+        invoiceAmount: invoice.totalAmount,
+        paymentAmount: invoice.totalAmount,
+        taxes,
+        operatorTaxNumber: process.env.BOLDERAJ_TAX_NUMBER!,
+        protectedId: invoice.ZOI,
+      };
+
+      const { JSONInvoice } = generateJSONInvoice(invoiceData);
+
+      const EOR = await connectWithFURS(JSONInvoice);
+
+      if (!EOR) continue;
+
+      invoice.EOR = EOR;
+
+      await invoice.save({ validateBeforeSave: false });
+    }
+  }
+
+  res.status(200).json({
+    status: "success",
+    invoices,
+  });
+});
+
 export const echoFiscal = catchAsync(async function (
   req: Request,
   res: Response,
