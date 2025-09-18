@@ -1390,7 +1390,6 @@ export const checkNotConfirmed = catchAsync(async function (
 
   res.status(200).json({
     status: "success",
-    invoices,
   });
 });
 
