@@ -1,11 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/userModel";
-import { getOne, updateOne } from "./handlerFactory";
+import { getOne, updateOne, deleteOne } from "./handlerFactory";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import Class from "../models/classModel";
 import Company from "../models/companyModel";
 import Ticket from "../models/ticketModel";
+
+export const deleteUser = deleteOne(User);
 
 export const getUser = catchAsync(async function (
   req: Request,
