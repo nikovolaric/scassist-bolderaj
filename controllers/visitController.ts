@@ -209,15 +209,19 @@ export const exportCompanyVisits = catchAsync(async function (
     });
   });
 
+  const buffer = await workbook.xlsx.writeBuffer();
+
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
+
+  const fileName = `Obiski-${company.companyName}.xlsx`;
+
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename=Obiski-${company.companyName}.xlsx`
+    `attachment; filename=${encodeURIComponent(fileName)}`
   );
 
-  await workbook.xlsx.write(res);
-  res.end();
+  res.end(buffer);
 });

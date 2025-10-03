@@ -7,7 +7,30 @@ import Class from "../models/classModel";
 import Company from "../models/companyModel";
 import Ticket from "../models/ticketModel";
 
-export const deleteUser = deleteOne(User);
+export const deleteUser = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const user = await User.findByIdAndDelete(req.params.id).populate({
+    path: "parent",
+    select: "firstName lastName birthDate email",
+  });
+
+  if (user?.parent) {
+    const parent = await User.findById(user.parent);
+
+    if (!parent) return next(new AppError("Parent does not exist", 400));
+
+    parent.parentOf = parent.parentOf.filter((el) => el.child !== user.id);
+
+    await parent.save({ validateBeforeSave: false });
+  }
+
+  res.status(204).json({
+    status: "success",
+  });
+});
 
 export const getUser = catchAsync(async function (
   req: Request,
