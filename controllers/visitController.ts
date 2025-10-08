@@ -114,6 +114,29 @@ export const getUserVisits = catchAsync(async function (
   });
 });
 
+export const getLastVisits = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const now = new Date();
+
+  const visits = await Visit.find({
+    date: {
+      $gte: startOfDay(now),
+      $lte: endOfDay(now),
+    },
+  })
+    .populate({ path: "ticket user", select: "name firstName lastName" })
+    .sort({ date: -1 });
+
+  res.status(200).json({
+    status: "success",
+    results: visits.length,
+    visits,
+  });
+});
+
 export const getDailyVisits = catchAsync(async function (
   req: Request,
   res: Response,
