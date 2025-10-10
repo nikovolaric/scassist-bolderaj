@@ -260,3 +260,27 @@ export const createTicketsForCompany = catchAsync(async function (
     company,
   });
 });
+
+export const deleteCompanyTickets = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const company = await Company.findById(req.params.id);
+
+  if (!company) return next(new AppError("Company not found", 404));
+
+  const deletedTickets = company.unusedTickets.slice(0, req.body.quantity);
+  const rest = company.unusedTickets.slice(req.body.quantity);
+
+  for (const ticket of deletedTickets) {
+    await Ticket.findByIdAndDelete(ticket);
+  }
+
+  company.unusedTickets = rest;
+  await company.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+  });
+});

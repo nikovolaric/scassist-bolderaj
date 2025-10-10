@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createTicket,
   createTicketsForCompany,
+  deleteCompanyTickets,
   deleteTicket,
   getAllTickets,
   getChildValidTickets,
@@ -31,6 +32,7 @@ router.use(restrictTo(["admin"]));
 
 router.route("/").post(createTicket);
 router.post("/createforcompany/:id", createTicketsForCompany);
+router.post("/deletecompanytickets/:id", deleteCompanyTickets);
 router.route("/:id").patch(updateTicket).delete(deleteTicket);
 
 export default router;
