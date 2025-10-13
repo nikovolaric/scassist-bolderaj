@@ -3,6 +3,7 @@ import {
   exportCompanyVisits,
   getAllVisits,
   getDailyVisits,
+  getDailyVisitsStats,
   getLastVisits,
   getMyChildVisits,
   getMyVisits,
@@ -28,7 +29,8 @@ router.get("/dailyvisits", getDailyVisits);
 router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllVisits);
-router.get("/lastvisits", getLastVisits);
+router.post("/dailyvisitsstats", getDailyVisitsStats);
+router.post("/lastvisits", getLastVisits);
 router.get("/:companyId/exportexcel", exportCompanyVisits);
 
 export default router;

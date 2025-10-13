@@ -119,7 +119,7 @@ export const getLastVisits = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const now = new Date();
+  const now = new Date(req.body.date);
 
   const visits = await Visit.find({
     date: {
@@ -143,6 +143,63 @@ export const getDailyVisits = catchAsync(async function (
   next: NextFunction
 ) {
   const now = new Date();
+
+  const visits = await Visit.find({
+    date: {
+      $gte: startOfDay(now),
+      $lte: endOfDay(now),
+    },
+  });
+
+  const intervals = [
+    {
+      label: "09:00–11:00",
+      start: setMinutes(setHours(now, 9), 0),
+      end: setMinutes(setHours(now, 11), 0),
+    },
+    {
+      label: "11:00–15:00",
+      start: setMinutes(setHours(now, 11), 0),
+      end: setMinutes(setHours(now, 15), 0),
+    },
+    {
+      label: "15:00–18:00",
+      start: setMinutes(setHours(now, 15), 0),
+      end: setMinutes(setHours(now, 18), 0),
+    },
+    {
+      label: "18:00–22:00",
+      start: setMinutes(setHours(now, 18), 0),
+      end: setMinutes(setHours(now, 22), 0),
+    },
+  ];
+
+  const groupedVisits = intervals.map((interval) => {
+    const count = visits.filter((visit) =>
+      isWithinInterval(new Date(visit.date), {
+        start: interval.start,
+        end: interval.end,
+      })
+    ).length;
+
+    return {
+      timeRange: interval.label,
+      visitCount: count,
+    };
+  });
+
+  res.status(200).json({
+    status: "success",
+    groupedVisits,
+  });
+});
+
+export const getDailyVisitsStats = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const now = new Date(req.body.date);
 
   const visits = await Visit.find({
     date: {
