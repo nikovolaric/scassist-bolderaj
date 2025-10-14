@@ -254,19 +254,22 @@ export const getInvoicesTotalSum = catchAsync(async function (
     {
       $group: {
         _id: null,
-        totalAmountSum: { $sum: "$totalAmount" },
+        totalAmountWithoutTax: { $sum: "$totalTaxableAmount" },
+        totalAmountSumWithTax: { $sum: "$totalAmount" },
         count: { $sum: 1 },
       },
     },
   ]);
 
-  const totalAmount = result[0]?.totalAmountSum || 0;
+  const totalAmountWithoutTax = result[0]?.totalAmountWithoutTax || 0;
+  const totalAmountSumWithTax = result[0]?.totalAmountSumWithTax || 0;
   const invoiceCount = result[0]?.count || 0;
 
   res.status(200).json({
     status: "success",
     results: invoiceCount,
-    totalAmount,
+    totalAmountWithoutTax,
+    totalAmountSumWithTax,
   });
 });
 

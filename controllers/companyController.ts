@@ -69,6 +69,22 @@ export const useCompanyTicket = catchAsync(async function (
 
   if (!company) return next(new AppError("Company does not exist", 404));
 
+  for (const unusedTicket of company.unusedTickets) {
+    const ticket = await Ticket.findById(unusedTicket);
+
+    if (!ticket) return next(new AppError("Ticket does not exist", 404));
+
+    if (ticket.validUntil < new Date()) {
+      company.unusedTickets = company.unusedTickets.filter(
+        (t) => t !== unusedTicket
+      );
+      await company.save({ validateBeforeSave: false });
+    }
+  }
+
+  if (company.unusedTickets.length < req.body.users.length)
+    return next(new AppError("Not enough available tickets.", 404));
+
   for (const id of req.body.users) {
     const ticket = await Ticket.findById(company.unusedTickets[0]);
 
@@ -132,5 +148,59 @@ export const addUser = catchAsync(async function (
 
   res.status(201).json({
     status: "success",
+  });
+});
+
+export const companyChanges = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const company = await Company.findById(req.params.id);
+
+  if (!company) return next(new AppError("Company does not exist.", 404));
+
+  const companyTickets = await Ticket.aggregate([
+    {
+      $match: { company: company._id },
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$soldOn" },
+        },
+        count: { $sum: 1 },
+        unusedCount: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$used", false] },
+                  { $gt: ["$validUntil", new Date()] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+      },
+    },
+    {
+      $sort: { _id: -1 },
+    },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id",
+        count: 1,
+        unusedCount: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    changes: companyTickets,
   });
 });

@@ -17,6 +17,7 @@ import {
   removeUserRole,
   updateUser,
   deleteUser,
+  getTotalUsersByAgeGroup,
 } from "../controllers/userController";
 import {
   confirmMail,
@@ -65,6 +66,12 @@ router.post("/createchild", createChild);
 router.use(restrictTo(["admin", "employee"]));
 
 router.get("/", getAllUsers);
+router.get(
+  "/getusersbyagegroup",
+  restrictTo(["admin"]),
+  getTotalUsersByAgeGroup
+);
+
 router.route("/:id").get(getUser);
 router.get("/:id/tickets", getUserTickets);
 router.get("/:id/classes", getUserClasses);
@@ -73,6 +80,7 @@ router.get("/:id/companies", getUserCompanies);
 router.get("/:id/children", getUserChildren);
 
 router.use(restrictTo(["admin"]));
+
 router.route("/:id").patch(updateUser).delete(deleteUser);
 router.post("/updaterole/:id", updateUsersRole);
 router.post("/removerole/:id", removeUserRole);

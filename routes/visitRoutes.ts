@@ -5,6 +5,7 @@ import {
   getDailyVisits,
   getDailyVisitsStats,
   getLastVisits,
+  getMonthlyVisits,
   getMyChildVisits,
   getMyVisits,
   getUserVisits,
@@ -30,6 +31,7 @@ router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllVisits);
 router.post("/dailyvisitsstats", getDailyVisitsStats);
+router.post("/monthlyvisitsstats", getMonthlyVisits);
 router.post("/lastvisits", getLastVisits);
 router.get("/:companyId/exportexcel", exportCompanyVisits);
 

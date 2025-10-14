@@ -2,6 +2,7 @@ import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
   addUser,
+  companyChanges,
   createCompany,
   deleteCompany,
   getAllCompanies,
@@ -26,6 +27,7 @@ router.use(restrictTo(["admin"]));
 
 router.route("/").post(createCompany);
 router.route("/:id").patch(updateCompany).delete(deleteCompany);
+router.get("/getchanges/:id", companyChanges);
 router.post("/:id/removeuser/:userid", removeUser);
 router.post("/:id/adduser/:userid", addUser);
 

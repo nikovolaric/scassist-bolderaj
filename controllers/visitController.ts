@@ -10,6 +10,8 @@ import {
   setHours,
   setMinutes,
   isWithinInterval,
+  startOfMonth,
+  endOfMonth,
 } from "date-fns";
 import { Workbook } from "exceljs";
 import Company from "../models/companyModel";
@@ -248,6 +250,40 @@ export const getDailyVisitsStats = catchAsync(async function (
   res.status(200).json({
     status: "success",
     groupedVisits,
+  });
+});
+
+export const getMonthlyVisits = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const now = new Date(req.body.date);
+
+  const visits = await Visit.find({
+    date: {
+      $gte: startOfMonth(now),
+      $lte: endOfMonth(now),
+    },
+  });
+
+  const hourlyStats = Array.from({ length: 13 }, (_, hour) => {
+    const count = visits.filter((visit) => {
+      const visitHour = new Date(visit.date).getHours();
+      return visitHour === hour + 9;
+    }).length;
+
+    return {
+      timeRange: `${String(hour + 9).padStart(2, "0")}:00–${String(
+        (hour + 10) % 24
+      ).padStart(2, "0")}:00`,
+      visitCount: count,
+    };
+  });
+
+  res.status(200).json({
+    status: "success",
+    hourlyStats,
   });
 });
 

@@ -426,3 +426,109 @@ export const getUserCompanies = catchAsync(async function (
     companies,
   });
 });
+
+export const getTotalUsersByAgeGroup = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const ageGroups = await User.aggregate([
+    {
+      $match: { birthDate: { $exists: true, $ne: null } },
+    },
+    {
+      $addFields: {
+        age: {
+          $dateDiff: {
+            startDate: "$birthDate",
+            endDate: "$$NOW",
+            unit: "year",
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        ageGroup: {
+          $switch: {
+            branches: [
+              {
+                case: { $lte: ["$age", 5] },
+                then: "0 - 5 let",
+              },
+              {
+                case: { $and: [{ $gt: ["$age", 5] }, { $lte: ["$age", 14] }] },
+                then: "6 - 14 let",
+              },
+              {
+                case: { $and: [{ $gt: ["$age", 14] }, { $lte: ["$age", 25] }] },
+                then: "15 - 25 let",
+              },
+              {
+                case: { $and: [{ $gt: ["$age", 25] }, { $lte: ["$age", 35] }] },
+                then: "26 - 35 let",
+              },
+              {
+                case: { $and: [{ $gt: ["$age", 35] }, { $lte: ["$age", 50] }] },
+                then: "36 - 50 let",
+              },
+              {
+                case: { $and: [{ $gt: ["$age", 50] }, { $lte: ["$age", 64] }] },
+                then: "51 - 64 let",
+              },
+              {
+                case: { $gt: ["$age", 65] },
+                then: "65+ let",
+              },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $unwind: "$ageGroup",
+    },
+    {
+      $group: {
+        _id: "$ageGroup",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $addFields: {
+        sortKey: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$_id", "0 - 5 let"] }, then: 1 },
+              { case: { $eq: ["$_id", "6 - 14 let"] }, then: 2 },
+              { case: { $eq: ["$_id", "15 - 25 let"] }, then: 3 },
+              { case: { $eq: ["$_id", "26 - 35 let"] }, then: 4 },
+              { case: { $eq: ["$_id", "36 - 50 let"] }, then: 5 },
+              { case: { $eq: ["$_id", "51 - 64 let"] }, then: 6 },
+              { case: { $eq: ["$_id", "65+ let"] }, then: 7 },
+            ],
+            default: 999,
+          },
+        },
+      },
+    },
+    {
+      $sort: { sortKey: 1 },
+    },
+    {
+      $project: {
+        _id: 0,
+        ageGroup: "$_id",
+        count: 1,
+      },
+    },
+  ]);
+
+  const totalUsers = ageGroups.reduce((c, a) => c + a.count, 0);
+
+  res.status(200).json({
+    status: "success",
+    totalUsers,
+    ageGroups,
+  });
+});
