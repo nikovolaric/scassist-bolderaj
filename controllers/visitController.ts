@@ -83,19 +83,36 @@ export const getYearlyVisitsNo = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const year = req.params.year;
+  const year = new Date().getFullYear();
 
-  const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-  const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+  const startDateYear = new Date(`${year}-01-01T00:00:00.000Z`);
+  const endDateYear = new Date();
 
-  const visits = await Visit.find({
-    date: { $gte: startDate, $lte: endDate },
-    user: req.user._id,
-  });
+  const { startDate, endDate } = req.body;
+
+  const totalVisits = await Visit.aggregate([
+    {
+      $match: {
+        date: {
+          $gt: startDate ? new Date(startDate) : startDateYear,
+          $lt: endDate ? new Date(endDate) : endDateYear,
+        },
+        user: req.user._id,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const results = totalVisits[0]?.total || 0;
 
   res.status(200).json({
     status: "success",
-    results: visits.length,
+    results,
   });
 });
 
@@ -340,4 +357,39 @@ export const exportCompanyVisits = catchAsync(async function (
   );
 
   res.end(buffer);
+});
+
+export const getTotalYearlyVisits = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const year = new Date().getFullYear();
+
+  const startDateYear = new Date(`${year}-01-01T00:00:00.000Z`);
+  const endDateYear = new Date();
+
+  const { startDate, endDate } = req.body;
+
+  const totalVisits = await Visit.aggregate([
+    {
+      $match: {
+        date: {
+          $gt: startDate ? new Date(startDate) : startDateYear,
+          $lt: endDate ? new Date(endDate) : endDateYear,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    total: totalVisits[0]?.total || 0,
+  });
 });

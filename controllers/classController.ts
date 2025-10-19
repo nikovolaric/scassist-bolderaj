@@ -92,12 +92,16 @@ export const createClass = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.body.teacher);
+  const teachers = await Promise.all(
+    req.body.teacher.map((id: string) => User.findById(id))
+  );
 
-  if (!user) return next(new AppError("User not found", 404));
+  for (const user of teachers) {
+    if (!user) return next(new AppError("User not found", 404));
 
-  if (!user.role.includes("coach") && !req.user.role.includes("admin"))
-    return next(new AppError("User is not a coach", 400));
+    if (!user.role.includes("coach") && !req.user.role.includes("admin"))
+      return next(new AppError("User is not a coach", 400));
+  }
 
   const newClass = await Class.create(req.body);
 
@@ -753,6 +757,50 @@ export const addUserToGroup = catchAsync(async function (
     ...classInfo.students,
     { student: req.body.student, attendance: [] },
   ];
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
+  });
+});
+
+export const addCoach = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  if (Array.isArray(classInfo.teacher)) {
+    classInfo.teacher = [...classInfo.teacher, req.body.coach];
+  } else {
+    classInfo.teacher = [classInfo.teacher, req.body.coach];
+  }
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
+  });
+});
+
+export const removeCoach = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  classInfo.teacher = classInfo.teacher.filter(
+    (t) => t.toString() !== req.body.coach
+  );
 
   await classInfo.save({ validateBeforeSave: false });
 

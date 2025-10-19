@@ -456,8 +456,15 @@ export const protect = catchAsync(async function (
   next: NextFunction
 ) {
   //1. Get token and check if it's there
+  let token;
 
-  const token = req.cookies.jwt;
+  if (req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
+
+  if (req.headers.authorization) {
+    token = req.headers.authorization.split(" ")[1];
+  }
 
   if (!token) {
     return next(

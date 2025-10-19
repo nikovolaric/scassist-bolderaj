@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
+  addCoach,
   addUserToGroup,
   checkAttendance,
   createClass,
@@ -12,6 +13,7 @@ import {
   getOneClass,
   getSingleDateClasses,
   getSingleDateClassesReception,
+  removeCoach,
   removeUserFromGroup,
   signUpChildForClassOnline,
   signUpForClassOnline,
@@ -49,5 +51,7 @@ router.route("/").get(getAllClasses).post(createClass);
 router.route("/:id").patch(updateClass).delete(deleteClass);
 router.patch("/:id/removeuser", removeUserFromGroup);
 router.patch("/:id/addUser", addUserToGroup);
+router.patch("/:id/addcoach", addCoach);
+router.patch("/:id/removecoach", removeCoach);
 
 export default router;

@@ -8,6 +8,7 @@ import {
   getMonthlyVisits,
   getMyChildVisits,
   getMyVisits,
+  getTotalYearlyVisits,
   getUserVisits,
   getYearlyVisitsNo,
 } from "../controllers/visitController";
@@ -20,7 +21,7 @@ router.use(protect);
 router.get("/myvisits", getMyVisits);
 router.get("/childvisits/:id", getMyChildVisits);
 
-router.get("/yearly/:year", getYearlyVisitsNo);
+router.post("/yearly", getYearlyVisitsNo);
 
 router.use(restrictTo(["admin", "employee"]));
 
@@ -33,6 +34,7 @@ router.route("/").get(getAllVisits);
 router.post("/dailyvisitsstats", getDailyVisitsStats);
 router.post("/monthlyvisitsstats", getMonthlyVisits);
 router.post("/lastvisits", getLastVisits);
+router.post("/gettotalyearly", getTotalYearlyVisits);
 router.get("/:companyId/exportexcel", exportCompanyVisits);
 
 export default router;

@@ -183,10 +183,18 @@ export const getMyValidTickets = catchAsync(async function (
 
   if (!user) return next(new AppError("User not found", 404));
 
+  const unusedTickets = await Promise.all(
+    user.unusedTickets.map(async (el: any) => {
+      const count = await Visit.countDocuments({ ticket: el._id });
+
+      return { ...el.toObject(), usedVisits: count };
+    })
+  );
+
   res.status(200).json({
     status: "success",
-    results: user.unusedTickets.length,
-    unusedTickets: user.unusedTickets.sort(
+    results: unusedTickets.length,
+    unusedTickets: unusedTickets.sort(
       (a: any, b: any) => b.updatedAt - a.updatedAt
     ),
   });

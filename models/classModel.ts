@@ -5,7 +5,7 @@ interface IClass {
     sl: string;
     en: string;
   };
-  teacher: Schema.Types.ObjectId;
+  teacher: Schema.Types.ObjectId[];
   hourlyRate: number;
   students: {
     student: Schema.Types.ObjectId | Types.ObjectId;
@@ -18,6 +18,7 @@ interface IClass {
   time: number[];
   ageGroup: string[];
   article: Schema.Types.ObjectId[];
+  replacements: Object[];
   hiddenReception: boolean;
   hiddenUsers: boolean;
 }
@@ -32,7 +33,7 @@ const classSchema = new Schema<IClass>(
         type: String,
       },
     },
-    teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    teacher: [{ type: Schema.Types.ObjectId, ref: "User", required: true }],
     hourlyRate: { type: Number },
     students: [
       {
@@ -50,6 +51,13 @@ const classSchema = new Schema<IClass>(
       {
         type: Schema.Types.ObjectId,
         ref: "Article",
+      },
+    ],
+    replacements: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        date: Date,
       },
     ],
     hiddenReception: {

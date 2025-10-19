@@ -24,6 +24,7 @@ app.use(express.json({ limit: "10kb" }));
 app.use(
   cors({
     origin: [
+      "exp://192.168.178.32:8081",
       "http://localhost:5173",
       "https://app.bolderaj.si",
       "https://reception.bolderaj.si",
