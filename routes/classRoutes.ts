@@ -2,10 +2,12 @@ import { Router } from "express";
 import { protect, restrictTo } from "../controllers/authController";
 import {
   addCoach,
+  addReplacement,
   addUserToGroup,
   checkAttendance,
   createClass,
   deleteClass,
+  deleteReplacement,
   getAllClasses,
   getChildClasses,
   getMultipleDateClasses,
@@ -49,6 +51,8 @@ router.get("/:id", getOneClass);
 router.use(restrictTo(["admin"]));
 router.route("/").get(getAllClasses).post(createClass);
 router.route("/:id").patch(updateClass).delete(deleteClass);
+router.patch("/:id/addReplacement", addReplacement);
+router.patch("/:id/deleteReplacement", deleteReplacement);
 router.patch("/:id/removeuser", removeUserFromGroup);
 router.patch("/:id/addUser", addUserToGroup);
 router.patch("/:id/addcoach", addCoach);

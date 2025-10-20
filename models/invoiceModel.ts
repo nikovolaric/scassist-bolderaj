@@ -1,5 +1,4 @@
 import { Schema, model } from "mongoose";
-import { sendInvoice } from "../utils/email";
 import User from "./userModel";
 
 interface IInvoice {

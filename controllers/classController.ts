@@ -119,7 +119,7 @@ export const getOneClass = catchAsync(async function (
   const currentUser = req.user;
 
   const currentClass = await Class.findById(req.params.id).populate({
-    path: "teacher students.student",
+    path: "teacher students.student replacements.teacher replacements.user",
     select: "firstName lastName email birthDate",
   });
 
@@ -800,6 +800,46 @@ export const removeCoach = catchAsync(async function (
 
   classInfo.teacher = classInfo.teacher.filter(
     (t) => t.toString() !== req.body.coach
+  );
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
+  });
+});
+
+export const addReplacement = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  classInfo.replacements.push(req.body);
+
+  await classInfo.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    classInfo,
+  });
+});
+
+export const deleteReplacement = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const classInfo = await Class.findById(req.params.id);
+
+  if (!classInfo) return next(new AppError("Class not found!", 404));
+
+  classInfo.replacements = classInfo.replacements.filter(
+    (el) => el.id !== req.body.id
   );
 
   await classInfo.save({ validateBeforeSave: false });

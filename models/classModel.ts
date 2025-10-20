@@ -18,7 +18,12 @@ interface IClass {
   time: number[];
   ageGroup: string[];
   article: Schema.Types.ObjectId[];
-  replacements: Object[];
+  replacements: {
+    user: Schema.Types.ObjectId | Types.ObjectId;
+    teacher: Schema.Types.ObjectId | Types.ObjectId;
+    date: Date;
+    id: string;
+  }[];
   hiddenReception: boolean;
   hiddenUsers: boolean;
 }
