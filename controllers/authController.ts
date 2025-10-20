@@ -131,7 +131,7 @@ export const sendNewConfirmMail = catchAsync(async function (
   const token = user.createConfirmMailToken();
   await user.save({ validateBeforeSave: false });
 
-  await sendAnotherConfirmMail({ email: req.body.email, token });
+  await sendAnotherConfirmMail({ email: req.user.email, token });
 
   res.status(200).json({
     status: "success",
