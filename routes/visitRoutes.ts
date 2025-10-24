@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   exportCompanyVisits,
   getAllVisits,
+  getCurrentVisitsStreak,
   getDailyVisits,
   getDailyVisitsStats,
   getLastVisits,
@@ -31,6 +32,7 @@ router.get("/dailyvisits", getDailyVisits);
 router.use(restrictTo(["admin"]));
 
 router.route("/").get(getAllVisits);
+router.get("/getmystreak", getCurrentVisitsStreak);
 router.post("/dailyvisitsstats", getDailyVisitsStats);
 router.post("/monthlyvisitsstats", getMonthlyVisits);
 router.post("/lastvisits", getLastVisits);

@@ -120,7 +120,11 @@ export const getOneClass = catchAsync(async function (
 
   const currentClass = await Class.findById(req.params.id).populate({
     path: "teacher students.student replacements.teacher replacements.user",
-    select: "firstName lastName email birthDate",
+    select: "firstName lastName email birthDate parent",
+    populate: {
+      path: "parent",
+      select: "email",
+    },
   });
 
   if (!currentClass) return next(new AppError("Class not found", 404));

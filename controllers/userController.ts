@@ -37,27 +37,31 @@ export const getUser = catchAsync(async function (
   res: Response,
   next: NextFunction
 ) {
-  const user = await User.findById(req.params.id).populate({
-    path: "parent",
-    select: "firstName lastName birthDate email",
-  });
+  const user = await User.findById(req.params.id)
+    .populate({
+      path: "parent",
+      select: "firstName lastName birthDate email",
+    })
+    .populate({
+      path: "unusedTickets",
+      select: "validUntil",
+    });
 
   if (!user) {
     return next(new AppError("No document found with that ID", 404));
   }
 
-  const validUnusedTickets = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  for (const ticketId of user.unusedTickets) {
-    const ticket = await Ticket.findById(ticketId);
+  const validTickets = user.unusedTickets.filter((ticket: any) => {
+    const validUntil = new Date(ticket.validUntil);
+    validUntil.setHours(0, 0, 1, 0);
+    return validUntil >= today;
+  });
 
-    if (ticket && ticket.validUntil >= new Date()) {
-      validUnusedTickets.push(ticketId);
-    }
-  }
-
-  if (validUnusedTickets.length !== user.unusedTickets.length) {
-    user.unusedTickets = validUnusedTickets;
+  if (validTickets.length !== user.unusedTickets.length) {
+    user.unusedTickets = validTickets.map((t: any) => t._id);
     await user.save({ validateBeforeSave: false });
   }
 

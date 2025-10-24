@@ -393,3 +393,54 @@ export const getTotalYearlyVisits = catchAsync(async function (
     total: totalVisits[0]?.total || 0,
   });
 });
+
+export const getCurrentVisitsStreak = catchAsync(async function (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const visitsByWeek = await Visit.aggregate([
+    { $match: { user: req.user._id } },
+    {
+      $addFields: {
+        year: { $year: "$date" },
+        week: { $isoWeek: "$date" },
+      },
+    },
+    {
+      $group: {
+        _id: { year: "$year", week: "$week" },
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $sort: { "_id.year": 1, "_id.week": 1 },
+    },
+  ]);
+
+  if (!visitsByWeek.length) {
+    return res.status(200).json({ status: "success", streak: 0 });
+  }
+
+  let streak = 1;
+  for (let i = visitsByWeek.length - 2; i >= 0; i--) {
+    const curr = visitsByWeek[i]._id;
+    const next = visitsByWeek[i + 1]._id;
+
+    const sameYear = curr.year === next.year;
+    const isPreviousWeek =
+      (sameYear && curr.week === next.week - 1) ||
+      (!sameYear &&
+        curr.year === next.year - 1 &&
+        curr.week === 52 &&
+        next.week === 1);
+
+    if (isPreviousWeek) streak++;
+    else break;
+  }
+
+  res.status(200).json({
+    status: "success",
+    streak,
+  });
+});

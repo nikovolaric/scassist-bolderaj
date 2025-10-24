@@ -89,10 +89,7 @@ export const useTicket = catchAsync(async function (
   const ticket = await Ticket.findById(req.params.id);
 
   if (!ticket) return next(new AppError("Ticket not found", 404));
-  if (
-    (ticket.used && ticket.type === "dnevna") ||
-    ticket.validUntil < new Date()
-  )
+  if (ticket.used && ticket.type === "dnevna" && ticket.validUntil < new Date())
     return next(new AppError("Ticket is not valid", 400));
 
   if (ticket.morning && new Date().getHours() >= 14)
@@ -120,7 +117,10 @@ export const useTicket = catchAsync(async function (
     });
   }
 
-  if (ticket.type === "terminska" && ticket.validUntil < new Date()) {
+  if (
+    ticket.type === "terminska" &&
+    ticket.validUntil.setHours(0, 0, 1) < new Date().setHours(0, 0, 0)
+  ) {
     user.unusedTickets = user.unusedTickets.filter((t) => {
       return t.toString() !== ticket.id.toString();
     });
@@ -182,6 +182,20 @@ export const getMyValidTickets = catchAsync(async function (
   });
 
   if (!user) return next(new AppError("User not found", 404));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const validTickets = user.unusedTickets.filter((ticket: any) => {
+    const validUntil = new Date(ticket.validUntil);
+    validUntil.setHours(0, 0, 1, 0);
+    return validUntil >= today;
+  });
+
+  if (validTickets.length !== user.unusedTickets.length) {
+    user.unusedTickets = validTickets.map((t: any) => t._id);
+    await user.save({ validateBeforeSave: false });
+  }
 
   const unusedTickets = await Promise.all(
     user.unusedTickets.map(async (el: any) => {
